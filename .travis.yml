@@ -1,0 +1,27 @@
+
+31 lines (23 sloc)  407 Bytes
+# use java support.
+language: java
+jdk:
+  - oraclejdk8
+
+# install the newest java.
+addons:
+  apt:
+    packages:
+      - oracle-java8-installer
+
+# run in container.
+sudo: false
+
+# use linux as operating system.
+os:
+  - linux
+  - osx
+
+# skip install stage.
+install: true
+
+# run maven build.
+script:
+  - mvn test

@@ -60,9 +60,12 @@ class SolutionController:Controller() {
 
             }
             event.camera.lastwriteProperty().addListener { observable, oldValue, newValue ->
-                var lastileResp= svc.api.get("/api/lastFile.lua")
-                if(lastileResp.ok()){
-                    cameraOnline(lastileResp.one(),event.camera)
+                if(!(oldValue?:"0").equals("0")) {
+                    var lastileResp = svc.api.get("/api/lastFile.lua")
+                    if (lastileResp.ok()) {
+                        cameraOnline(lastileResp.one(), event.camera)
+                        fire(DownloadJPG(lastileResp.one(),svc.api))
+                    }
                 }
                 print(oldValue+"--------")
                 println(newValue)

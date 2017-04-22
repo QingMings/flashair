@@ -15,7 +15,6 @@ sudo: false
 # use linux as operating system.
 os:
   - linux
-  - osx
 
 # skip install stage.
 install: true

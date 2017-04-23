@@ -11,7 +11,6 @@ import java.util.logging.Level
  */
 class TopView : View("My View") {
     val solutionController: SolutionController by inject()
-    val cameraContoller: CameraController by inject()
     init {
         solutionController.loaddefault()
     }

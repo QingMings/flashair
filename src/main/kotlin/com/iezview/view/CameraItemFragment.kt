@@ -55,7 +55,8 @@ class CameraItemFragment(it: Camera) :  Fragment("CameraItem") {
                 }
                 hbox {
                     text {
-                        text=it.ip
+
+                        textProperty().bindBidirectional(it.ipProperty())
                     }
                     style {
                         alignment=Pos.BOTTOM_CENTER
@@ -79,6 +80,18 @@ class CameraItemFragment(it: Camera) :  Fragment("CameraItem") {
                 }
                 text{
                     textProperty().bindBidirectional(it.currimgProperty())
+                    font=Fonts.latoBold(10.0)
+                }
+                style{
+                    fontSize=10.px
+                }
+            }
+            hbox {
+                label {
+                    text="拍照数量:"
+                }
+                text{
+                    textProperty().bindBidirectional(it.photosizeProperty())
                     font=Fonts.latoBold(10.0)
                 }
                 style{

@@ -2,6 +2,7 @@ package com.iezview.model
 
 import tornadofx.*
 import java.util.*
+import java.util.concurrent.ArrayBlockingQueue
 import javax.json.JsonObject
 
 /**
@@ -23,6 +24,11 @@ class Camera():JsonModel{
     fun currpathProperty()=getProperty(Camera::currpath)
     var lastwrite by property<String>()
     fun  lastwriteProperty()=getProperty(Camera::lastwrite)
+    var queue  by property(ArrayBlockingQueue<JsonObject>(150))//提供一个容量为150的阻塞队列
+    fun queueProperty()=getProperty(Camera::queue)
+    var photosize by property("0")
+    fun photosizeProperty()=getProperty(Camera::photosize)
+
 
     override fun updateModel(json: JsonObject) {
         super.updateModel(json)
@@ -34,6 +40,8 @@ class Camera():JsonModel{
             currimg=string("currimg")
             currpath=string("currpath")
             lastwrite=string("lastwrite")
+            photosize=string("photosize")
+
         }
     }
 
@@ -49,7 +57,7 @@ class Camera():JsonModel{
     }
 
     override fun toString(): String {
-        return "Camera(id=$id,name=$name,ip=$ip,online=$online,currimg=$currimg,currpath=$currpath,lastwrite=$lastwrite)"
+        return "Camera(id=$id,name=$name,ip=$ip,online=$online,currimg=$currimg,currpath=$currpath,lastwrite=$lastwrite,photosize=$photosize)"
     }
 }
 

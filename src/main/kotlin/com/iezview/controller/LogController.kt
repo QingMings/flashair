@@ -32,7 +32,7 @@ class  LogController:Controller(){
     init {
         println("log组件初始化")
         PathUtil.resolvePath(logPath)
-        PathUtil.resolvePath(logfilePath)
+        PathUtil.resolvefile(logfilePath)
         val fileHandler =FileHandler(logfilePath.toString(),true)
         fileHandler.formatter=LoggerFormat()
         log.addHandler(fileHandler)

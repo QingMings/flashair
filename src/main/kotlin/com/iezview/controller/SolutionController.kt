@@ -4,7 +4,9 @@ import com.iezview.model.Camera
 import com.iezview.model.Solution
 import com.iezview.model.SolutionName
 import com.iezview.model.Solutions
-import com.iezview.util.MyScheduledService
+import com.iezview.service.CameraScheduledService
+import com.iezview.service.DownLoadService
+import com.iezview.service.LastFileService
 import com.iezview.util.PathUtil
 import com.iezview.view.NewSolutionWizard
 import javafx.beans.property.SimpleBooleanProperty
@@ -18,6 +20,7 @@ import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
 import java.util.logging.Level
 import javax.json.JsonObject
+import kotlin.concurrent.thread
 
 /**
  * Created by shishifanbuxie on 2017/4/12.
@@ -49,35 +52,44 @@ class SolutionController:Controller() {
             defaultCameraList().forEach { camera ->fire(InitCamera(camera))}
         }
         subscribe<InitCamera> { event ->
-            val svc = object : MyScheduledService(event.camera,this@SolutionController){}
-            svc.period = Duration.seconds(1.0)
+            val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
+            svc.period = Duration.seconds(0.5)
             svc.start()
             svc.setOnSucceeded { successEvent->
                 println(successEvent.source.value)
             }
             svc.setOnFailed { fileEvent->
                 println(fileEvent.source.value?:"空")
+                cameraOffline(event.camera)
 
             }
             event.camera.lastwriteProperty().addListener { observable, oldValue, newValue ->
                 if(!(oldValue?:"0").equals("0")) {
-                    var lastileResp = svc.api.get("/api/lastFile.lua")
-                    if (lastileResp.ok()) {
-                        cameraOnline(lastileResp.one(), event.camera)
-                        fire(DownloadJPG(lastileResp.one(),svc.api))
-                    }
+//                    var lastileResp = svc.api.get("/api/lastFile.lua")
+//                    if (lastileResp.ok()&&lastileResp.one().size>0) {
+//                        cameraOnline(lastileResp.one(), event.camera)
+//                        fire(enQueue(lastileResp.one(),event.camera))
+//                    }
+//                    thread(true,true,null,null){
+                        LastFileService(svc.api.baseURI!!,event.camera,this@SolutionController).start()
+//                    }
                 }
                 print(oldValue+"--------")
                 println(newValue)
                 println(event.camera)
             }
+            thread(true,true,null,event.camera.ip){
+                var downloadjpg= DownLoadService(event.camera,this@SolutionController)
+                downloadjpg.start()
+            }
+
+
         }
-        subscribe<DownloadJPG> {event->
-            downloadJPG(event.lastfile,event.api)
+        subscribe<enQueue> {event->
+                enqueue(event.downloadAddress,event.camera)
         }
-        subscribe<updateCamera> {event->
-            fire(solutionList(selectedSolutionCameras))
-        }
+
+
         //新建方案使用
         subscribe<saveCamera> {event->
             cameras.add(event.camera)
@@ -116,18 +128,28 @@ class SolutionController:Controller() {
      * 相机在线
      */
     fun  cameraOnline(lastfile:JsonObject,camera: Camera){
-        var fileName=lastfile.getString(FileName)
-        var filePath=lastfile.getString(FilePath)
-        camera.currimg=fileName
-        camera.currpath=filePath
+        if(lastfile.size>0) {
+            var fileName = lastfile.getString(FileName)
+            var filePath = lastfile.getString(FilePath)
+            camera.currimg = fileName
+            camera.currpath = filePath
+        }
     }
-    fun  downloadJPG(lastfile: JsonObject,api: Rest){
-        var downFileResp = api.get(lastfile.getString(CameraController.FilePath))
+
+    /**
+     * 入队
+     */
+    fun enqueue(downloadAddress: JsonObject,camera: Camera){
+        camera.queue.put(downloadAddress)
+        camera.photosize=camera.queue.size.toString()
+    }
+    fun  downloadJPG(lastfile: JsonObject,api: Rest) {
+        var downFileResp = api.get(lastfile.getString(FilePath))
         try {
             if (downFileResp.ok()) {
                 var fileStream = downFileResp.content()
                 fileStream.use {
-                    Files.copy(it, PathUtil.resolvePath(Paths.get("img").resolve(lastfile.getString(CameraController.FileName))), StandardCopyOption.REPLACE_EXISTING)
+                    Files.copy(it, PathUtil.resolvefile(Paths.get("img").resolve(lastfile.getString(FileName))), StandardCopyOption.REPLACE_EXISTING)
                 }
             }
         } catch (e: Exception) {
@@ -269,7 +291,6 @@ class  saveCamera(val  camera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)/
 class  putCameras(val cameras: ObservableList<Camera>):FXEvent(EventBus.RunOn.ApplicationThread)//将Camer添加到list中
 class  selectedCamera(val selectedCamera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)//选中的 list item
 class  removeCamera():FXEvent(EventBus.RunOn.ApplicationThread)// 从list items中移除 item
-class  updateCamera():FXEvent(EventBus.RunOn.BackgroundThread)
 class  InitCameras() : FXEvent(EventBus.RunOn.BackgroundThread)//初始化相机列表
 class  InitCamera(val camera: Camera) : FXEvent(EventBus.RunOn.ApplicationThread)//初始化相机
-class  DownloadJPG(val lastfile: JsonObject,val api:Rest):FXEvent(EventBus.RunOn.BackgroundThread)
+class  enQueue(val downloadAddress:JsonObject,val camera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)//入队

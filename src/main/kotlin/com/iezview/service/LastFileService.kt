@@ -18,7 +18,7 @@ class LastFileService(basiURI:String, camera: Camera, solutionController: Soluti
     val c=camera
     override fun createTask(): Task<String> {
         api.baseURI=uri
-        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=2000}
+        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=5000}
         return object : LastFileTask(api,c,sc){}
     }
 }
@@ -34,6 +34,10 @@ open class  LastFileTask(api: Rest, camera: Camera, solutionController: Solution
 
         println(api.baseURI)
         var lastileResp = api.get("/api/lastFile.lua")
+        while(!lastileResp.ok()){
+            print("重新访问")
+            lastileResp =api.get("/api/lastFile.lua")
+        }
         println("访问最后文件事件触发")
         println("访问是否成功： "+lastileResp.ok())
         if (lastileResp.ok()&&lastileResp.one().size>0) {

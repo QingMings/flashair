@@ -44,12 +44,13 @@ class SolutionModel : ItemViewModel<Solution>(Solution()) {
  * 并且用于动态构建菜单
  */
 
-class Solutions(sn: List<SolutionName>?=FXCollections.observableArrayList<SolutionName>(emptyList<SolutionName>())) :JsonModel{
+class Solutions(sn: ObservableList<SolutionName>?=FXCollections.observableArrayList<SolutionName>(emptyList<SolutionName>())) :JsonModel{
     companion object{
         val ROOT="solutions"
         val SOLUTION_NAMES="solutionNames"
     }
-    var solutionNames = FXCollections.observableArrayList<SolutionName>(sn)
+    var solutionNames by property(sn)
+
     fun solutionNamesProperty()=getProperty(Solutions::solutionNames)
     override fun updateModel(json: JsonObject) {
         with(json){

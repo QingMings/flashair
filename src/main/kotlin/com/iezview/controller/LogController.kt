@@ -3,6 +3,7 @@ package com.iezview.controller
 import com.iezview.util.ArrowFactory
 import com.iezview.util.LoggerFormat
 import com.iezview.util.PathUtil
+import com.iezview.view.consoleViewStyle
 import javafx.geometry.Pos
 import javafx.scene.Node
 import javafx.scene.layout.HBox
@@ -24,19 +25,21 @@ class  LogController:Controller(){
     companion object{
         val GREEN="green"
         val RED="red"
+        val ORANGE="orange"
     }
     val consoleView: CodeArea=CodeArea()//日志输出视图
     //配置 log输出位置
-    val  logPath= Paths.get("log")
-    val  logfilePath=logPath.resolve(LocalDate.now().toString()+".log")
+    val  logPath= Paths.get("log")!!
+    val  logfilePath= logPath.resolve(LocalDate.now().toString()+".log")!!
     init {
-        println("log组件初始化")
+        importStylesheet(consoleViewStyle::class)
+        writeLogToFile("log组件初始化")
         PathUtil.resolvePath(logPath)
-        PathUtil.resolvePath(logfilePath)
+        PathUtil.resolvefile(logfilePath)
         val fileHandler =FileHandler(logfilePath.toString(),true)
         fileHandler.formatter=LoggerFormat()
         log.addHandler(fileHandler)
-        subscribe<writeLogEvent>{event->writeOutlog(event.loglevel,event.message)}
+        subscribe<writeLogEvent>{event-> writeOutLog(event.loglevel,event.message)}
         subscribe<cleanLogEvent>{cleanlog()}
     }
     /**
@@ -57,13 +60,24 @@ class  LogController:Controller(){
     /**
      * 写日志
      */
-    fun writeOutlog(loglevel:Level, message:String):Unit{
-        if(loglevel==Level.INFO){
+    fun writeOutLog(logLevel:Level, message:String):Unit{
+        if(logLevel==Level.INFO){
             log(message, GREEN)
-            log.info(message+"\n")
-        }else if(loglevel== Level.WARNING){
-           log(message, RED)
+            log.info(message)
+        }else if(logLevel== Level.WARNING){
+           log(message, ORANGE)
+            log.warning(message)
+        }else{
+            log(message, RED)
+            log.warning(message)
         }
+    }
+
+    /**
+     * 写日志到文件
+     */
+    fun writeLogToFile(message: String){
+        log.info(message)
     }
     /**
      * 打印日志
@@ -85,4 +99,4 @@ class  LogController:Controller(){
 }
 
 class writeLogEvent(val loglevel: Level,val message: String) :FXEvent(EventBus.RunOn.ApplicationThread)//写日志事件
-class cleanLogEvent():FXEvent(EventBus.RunOn.ApplicationThread)//清除日志事件
+class cleanLogEvent :FXEvent(EventBus.RunOn.ApplicationThread)//清除日志事件

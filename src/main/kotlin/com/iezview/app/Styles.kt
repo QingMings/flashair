@@ -7,28 +7,24 @@ import tornadofx.*
 class Styles : Stylesheet() {
     companion object {
         val heading by cssclass()
-        val green by cssclass()
-        val red by cssclass()
-        val codeArea by cssclass()
+
+
         val splitPaneDivider by cssclass()
         val splitPane by cssclass()
+        val titledPane by cssclass()
+
     }
 
     init {
+        root{
+            fontFamily= "Hei"
+        }
         label and heading {
             padding = box(10.px)
             fontSize = 20.px
             fontWeight = FontWeight.BOLD
         }
-        green {
-            fill = c("#80b380")
-        }
-        red {
-            fill = c("#e64d4d")
-        }
-        codeArea {
-            backgroundColor += c("#333333")
-        }
+
 
         splitPane {
             splitPaneDivider {
@@ -41,6 +37,10 @@ class Styles : Stylesheet() {
             backgroundInsets += box(0.px)
             padding = box(0.px)
         }
-
+        titledPane{
+            text{
+                fontSize=10.px
+            }
+        }
     }
 }

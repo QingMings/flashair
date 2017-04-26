@@ -12,7 +12,20 @@ object PathUtil {
      * 创建目录
      */
      fun resolvePath(savepath: Path): Path {
-        if (!Files.exists(savepath))  Files.createDirectories(savepath)
+        if (!Files.exists(savepath)) {
+            Files.createDirectories(savepath)
+        }
         return savepath
     }
+
+    /**
+     * 创建file
+     */
+    fun resolvefile(filepath:Path):Path{
+        if(!Files.exists(filepath)){
+            Files.createFile(filepath)
+        }
+        return filepath
+    }
+
 }

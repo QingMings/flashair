@@ -14,7 +14,7 @@ class LoggerFormat: Formatter() {
             var sb=StringBuilder()
                 sb.append(Instant.now()).append(" ")
                 if(record?.level== Level.INFO) sb.append("INFO ") else sb.append("ERROR ")
-                sb.append(record?.message)
+                sb.append(record?.message).append("\n")
         return sb.toString()
     }
 }

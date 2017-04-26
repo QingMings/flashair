@@ -20,3 +20,7 @@ out/
 
 
 target/
+/.conf/
+/flashair.properties
+/flashair.xml
+/module_flashair.xml

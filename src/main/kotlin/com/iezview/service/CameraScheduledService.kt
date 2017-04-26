@@ -2,6 +2,7 @@ package com.iezview.service
 
 import com.iezview.controller.SolutionController
 import com.iezview.model.Camera
+import com.iezview.util.API
 import javafx.concurrent.ScheduledService
 import javafx.concurrent.Task
 import tornadofx.*
@@ -18,26 +19,30 @@ open class CameraScheduledService(camera: Camera, solutionController: SolutionCo
     override fun createTask(): Task<String> {
         return  object : MyTask<String>(api,c,solu){}
     }
-
 }
 
 /**
  *  任务
  */
-open class  MyTask<String>(api: Rest, camera: Camera, solutionController: SolutionController): Task<kotlin.String>(){
-    val api=api// 网络访问 每个相机一个实例，互不干扰
+open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干扰
+        val api: Rest, camera: Camera, solutionController: SolutionController): Task<kotlin.String>(){
     val  c=camera//方案控制器
-    val log=solutionController //当前相机
+    val sc=solutionController //当前相机
     override fun call(): kotlin.String {
+        if(sc.serviceStart.value.not()){cancel()}
+        if(isCancelled){
+            sc.cameraInit(c)
+           return ""
+         }
         api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=1000}
-        api.baseURI="http://${c.ipProperty().value}"
-        var resp=api.get("/command.cgi?op=121&TIME="+System.currentTimeMillis())
+        api.baseURI="${API.Base}${c.ipProperty().value}"
+        val resp=api.get("${API.LastWrite}${System.currentTimeMillis()}")
                 if(resp.ok()){
                     c.online=1
                     c.lastwrite=resp.text()
                 }else{
-                    log.writeErrorlog("${c.ip}  连接异常")
-                    log.cameraOffline(c)
+                    sc.writeErrorlog("${c.ip}  连接异常")
+                    sc.cameraOffline(c)
                 }
         return c.lastwrite?:""
     }

@@ -16,7 +16,9 @@ import tornadofx.*
  */
 class CameraItemFragment(it: Camera) :  Fragment("CameraItem") {
     override val root =hbox {
+        addClass(CameraItemStyle.cameraItem)
         hbox {
+            addClass(CameraItemStyle.cameraState)
             circle {
                 centerX = 100.0
                 centerY = 100.0
@@ -33,69 +35,41 @@ class CameraItemFragment(it: Camera) :  Fragment("CameraItem") {
                     }
                 fillProperty().bindBidirectional(Gradient.OFF_LINE.toProperty())
                 effect=DropShadow(3.0,Color.color(0.4,0.4,0.4))
-                style{
-                    borderColor+=box(Color.GREEN)
-                }
             }
             style{
-                padding= box(6.px,10.px,0.px,10.px)
-                alignment= Pos.TOP_CENTER
+
             }
         }
         vbox {
             hbox {
                 hbox {
+                    addClass(CameraItemStyle.cameraName)
                     text {
                         textProperty().bindBidirectional(it.nameProperty())
                         font=Fonts.latoRegular(20.0)
                     }
-                    style {
-                        padding= box(0.px,10.px,0.px,0.px)
-                    }
                 }
                 hbox {
-                    text {
-
-                        textProperty().bindBidirectional(it.ipProperty())
-                    }
-                    style {
-                        alignment=Pos.BOTTOM_CENTER
-                    }
+                    addClass(CameraItemStyle.cameraIp)
+                    text { textProperty().bindBidirectional(it.ipProperty())}
                 }
             }
             hbox {
-                label {
-                    text="当前目录："
-                }
-                text{
-                    textProperty().bindBidirectional(it.currpathProperty())
-                }
-                style{
-                    fontSize=10.px
-                }
+                label {text="当前目录："}
+                text{textProperty().bindBidirectional(it.currpathProperty())}
             }
             hbox {
-                label {
-                    text="当前图片:"
-                }
+                label {text="当前图片:"}
                 text{
                     textProperty().bindBidirectional(it.currimgProperty())
                     font=Fonts.latoBold(10.0)
                 }
-                style{
-                    fontSize=10.px
-                }
             }
             hbox {
-                label {
-                    text="拍照数量:"
-                }
+                label {text="待下载照片:"}
                 text{
                     textProperty().bindBidirectional(it.photosizeProperty())
                     font=Fonts.latoBold(10.0)
-                }
-                style{
-                    fontSize=10.px
                 }
             }
         }
@@ -118,7 +92,6 @@ class CameraItemEditFragment(it:Camera) : Fragment("Edit Camera") {
         vbox {
             hbox {
                 label(it.ip)
-
             }
             style {
                 alignment=Pos.BOTTOM_RIGHT
@@ -126,4 +99,31 @@ class CameraItemEditFragment(it:Camera) : Fragment("Edit Camera") {
             }
         }
     }
+}
+
+class  CameraItemStyle:Stylesheet(){
+    companion object{
+        val cameraItem by cssclass()
+        val cameraState by  cssclass()
+        val  cameraName by cssclass()
+        val cameraIp by cssclass()
+    }
+    init {
+        cameraItem{
+            cameraState{
+                padding= box(6.px,10.px,0.px,10.px)
+                alignment= Pos.TOP_CENTER
+            }
+            cameraName{
+                padding= box(0.px,10.px,0.px,0.px)
+            }
+            cameraIp{
+                alignment=Pos.BOTTOM_CENTER
+            }
+            label{
+                fontSize=10.px
+            }
+        }
+    }
+
 }

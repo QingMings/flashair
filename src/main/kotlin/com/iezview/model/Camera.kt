@@ -28,7 +28,7 @@ class Camera():JsonModel{
     fun queueProperty()=getProperty(Camera::queue)
     var photosize by property("0")
     fun photosizeProperty()=getProperty(Camera::photosize)
-
+    var filemap by property<HashMap<String,String>>()
 
     override fun updateModel(json: JsonObject) {
         super.updateModel(json)

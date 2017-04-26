@@ -1,11 +1,10 @@
 package com.iezview.view
 
-import com.iezview.controller.putCameras
-import com.iezview.controller.removeCamera
-import com.iezview.controller.saveCamera
-import com.iezview.controller.selectedCamera
+import com.iezview.controller.*
+import com.iezview.model.Camera
 import com.iezview.model.CameraModel
 import com.iezview.model.SolutionModel
+import javafx.collections.ObservableList
 import javafx.geometry.Pos
 import javafx.scene.control.TextFormatter
 import javafx.stage.StageStyle
@@ -16,38 +15,44 @@ import tornadofx.*
  * 新建方案   Wizard
  */
 class NewSolutionWizard : Wizard("新建方案", "添加一个新的工作方案") {
+    val solutionController:SolutionController by param()
+    val solution: SolutionModel by inject()
+    override val canGoNext = currentPageComplete
+    override val canFinish = allPagesComplete
     init {
+        enterProgresses=true//响应回车事件
         stepsTextProperty.set("步骤")
         backButtonTextProperty.set("上一步")
         nextButtonTextProperty.set("下一步")
         finishButtonTextProperty.set("完成")
         cancelButtonTextProperty.set("取消")
         graphic = resources.imageview("graphics/icon_16x16@2x.png")
-        add(SolutionNameView::class)
-        add(SolutionCameraListView::class)
+        add(SolutionNameView::class,mapOf(SolutionNameView::solutionController to solutionController))
+        add(SolutionCameraListView::class,mapOf(SolutionNameView::solutionController to solutionController))
     }
 
-    val solution: SolutionModel by inject()
-    override val canGoNext = currentPageComplete
-    override val canFinish = allPagesComplete
 }
 
 /**
  * 新建方案  page1
  */
 class SolutionNameView : View("新建方案") {
+    val solutionController:SolutionController by param()
     val solutionModel: SolutionModel by inject()
     override val complete = solutionModel.valid(solutionModel.name)
-    override val root = form {
+    override val root = hbox { form {
         fieldset(title) {
             field("方案名称") {
                 textfield(solutionModel.name) {
-                    prefColumnCount = 5
+                    prefColumnCount = 10
                     required()
+                }.validator { str ->
+                    if(solutionController.checkSolutionNameExists(str?:""))  error("已经存在相同名字的方案") else
+                    if(str=="solutions"||str=="selectedSolution"||str=="selectedCamera") error("系统保留,不可使用该名称") else null
                 }
             }
         }
-    }
+    } }
 }
 
 /**
@@ -70,9 +75,6 @@ class SolutionCameraListView : View("相机列表") {
                         subscribe<putCameras> {
                             event ->
                             solutionModel.item.cameraList.setAll(event.cameras)
-                            println(event.cameras)
-                            println(solutionModel.item)
-                            println(solutionModel.valid(solutionModel.cameraList))
                         }
                         selectionModel.selectedItemProperty().addListener { observable, oldValue, newValue ->
                             if (newValue != null) fire(selectedCamera(newValue))
@@ -83,11 +85,14 @@ class SolutionCameraListView : View("相机列表") {
                     }
                     hbox {
                         button("+") {
+                            shortcut("shortcut+N")
                             setOnAction {
-                                find(newCamera::class).openModal(stageStyle = StageStyle.UTILITY)
+                                find<newCamera>(mutableMapOf(newCamera::commitParam to {camera:Camera -> fire(saveCamera(camera))},newCamera::cameraList to solutionModel.cameraList.value)).openModal(stageStyle = StageStyle.UTILITY)
                             }
                         }
                         button("-") {
+                            shortcut("DELETE")
+                            shortcut("BackSpace")
                             setOnAction {
                                 fire(removeCamera())
                             }
@@ -101,14 +106,18 @@ class SolutionCameraListView : View("相机列表") {
  * 新建方案 page2 添加相机
  */
 class newCamera : Fragment("添加相机") {
+    val commitParam : (Camera) -> Unit by param()
+    val cameraList :ObservableList<Camera>? by param()
     //    val cameraModel:CameraModel by inject()
     val cameraModel = CameraModel()
-    override val root = form {
+    override val root =hbox{ form {
         fieldset(title) {
             field("相机名称") {
                 textfield(cameraModel.name) {
                     prefColumnCount = 10
                     required()
+                }.validator {
+                    if(checkCameraNameExists(it)) error("当前方案中已经存在相同名称的相机") else null
                 }
             }
             field("相机IP") {
@@ -123,15 +132,17 @@ class newCamera : Fragment("添加相机") {
                     textFormatter = TextFormatter<Any>(ipAddressFilter)
                 }.validator {
                     val regex = makeIPRegex()
-                    if (it.isNullOrEmpty().not() && (it?.matches(regex.toRegex()))?.not() ?: false) error("IP地址不对") else null
+                    if (it.isNullOrEmpty().not() && (it?.matches(regex.toRegex()))?.not() ?: false) error("IP地址不对") else
+                    if(checkCameraIpExists(it)) error("已经添加过该IP地址") else null
                 }
             }
             hbox {
                 button("保存") {
+                    shortcut("Enter")
                     disableProperty().bind(cameraModel.dirty.not())
                     enableWhen { cameraModel.valid }
                     setOnAction {
-                        save()
+                        save(commitParam)
                     }
                 }
                 style {
@@ -145,7 +156,7 @@ class newCamera : Fragment("添加相机") {
             padding = box(10.px, 10.px, 0.px, 10.px)
         }
     }
-
+    }
     /**
      * IP输入格式验证
      */
@@ -168,12 +179,32 @@ class newCamera : Fragment("添加相机") {
     }
 
     /**
+     * 检查camera名字是否存在
+     */
+    private fun checkCameraNameExists(cameraName:String?):Boolean{
+        cameraList?.forEach { camera->
+            if(camera.name==cameraName){return true}
+        }
+        return false
+    }
+
+    /**
+     * 检查相机Ip是否存在
+     */
+    private  fun  checkCameraIpExists(cameraIp:String?):Boolean{
+        cameraList?.forEach { camera->
+            if(camera.ip==cameraIp) return true
+        }
+        return false
+    }
+    /**
      * 保存
      */
-    private fun save() {
+    private fun save(commitCamera:(Camera)->Unit) {
         cameraModel.commit(cameraModel.name, cameraModel.ip)
-        var camera = cameraModel.item
-        fire(saveCamera(camera))
+        commitCamera(cameraModel.item)
+//        var camera = cameraModel.item
+//        fire(saveCamera(camera))
         close()
     }
 }

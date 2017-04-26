@@ -2,6 +2,7 @@ package com.iezview.service
 
 import com.iezview.controller.SolutionController
 import com.iezview.model.Camera
+import com.iezview.util.API
 import javafx.concurrent.Service
 import javafx.concurrent.Task
 import tornadofx.*
@@ -27,16 +28,14 @@ class DownLoadService(camera: Camera, solutionController: SolutionController): S
 open class DownLoadTask<String>(camera: Camera, api: Rest, solutionController: SolutionController): Task<kotlin.String>(){
     val queue=camera.queue
     var api=api// 网络访问 每个相机一个实例，互不干扰
-
     val  c=camera//方案控制器
     val sc=solutionController //当前相机
     override fun call(): kotlin.String {
         api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=10000}
-        api.baseURI="http://${c.ipProperty().value}"
+        api.baseURI="${API.Base}${c.ipProperty().value}"
         while (true){
         val filepath=queue.take()
-        sc.downloadJPG(filepath,api)
-        println("${c.name} 下载图片: $filepath 已完成")
+        sc.downloadJPG(filepath,api,c)
         }
         return ""
     }

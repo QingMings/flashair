@@ -1,8 +1,9 @@
 package com.iezview.service
 
 import com.iezview.controller.SolutionController
-import com.iezview.controller.enQueue
 import com.iezview.model.Camera
+import com.iezview.util.API
+import com.iezview.util.JK
 import javafx.concurrent.Service
 import javafx.concurrent.Task
 import tornadofx.*
@@ -18,9 +19,10 @@ class LastFileService(basiURI:String, camera: Camera, solutionController: Soluti
     val c=camera
     override fun createTask(): Task<String> {
         api.baseURI=uri
-        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=5000}
+        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=3000}
         return object : LastFileTask(api,c,sc){}
     }
+
 }
 
 /**
@@ -31,20 +33,15 @@ open class  LastFileTask(api: Rest, camera: Camera, solutionController: Solution
     val sc=solutionController
     val c=camera
     override fun call(): String {
-
-        println(api.baseURI)
-        var lastileResp = api.get("/api/lastFile.lua")
+        var lastileResp = api.get(API.LastFile)
         while(!lastileResp.ok()){
-            print("重新访问")
-            lastileResp =api.get("/api/lastFile.lua")
+            Thread.sleep(500)
+            lastileResp =api.get(API.LastFile)
         }
-        println("访问最后文件事件触发")
-        println("访问是否成功： "+lastileResp.ok())
+            println("获取最后照片")
         if (lastileResp.ok()&&lastileResp.one().size>0) {
-            println("获得范文结果")
-            sc.cameraOnline(lastileResp.one(), c)
-            sc.fire(enQueue(lastileResp.one(),c))
-            println("加入队列:")
+                sc.cameraOnline(lastileResp.one(), c)
+            NewFileListService(lastileResp.one().getString(JK.DirPath),api.baseURI!!,c,sc).start()
         }
         return ""
     }

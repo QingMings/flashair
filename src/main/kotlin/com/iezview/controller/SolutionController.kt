@@ -1,15 +1,14 @@
 package com.iezview.controller
 
-import com.iezview.model.Camera
-import com.iezview.model.Solution
-import com.iezview.model.SolutionName
-import com.iezview.model.Solutions
+import com.iezview.model.*
 import com.iezview.service.CameraScheduledService
 import com.iezview.service.DownLoadService
 import com.iezview.service.LastFileService
 import com.iezview.util.PathUtil
 import com.iezview.view.NewSolutionWizard
+import com.iezview.view.NewTaskWizard
 import javafx.beans.property.SimpleBooleanProperty
+import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
 import javafx.collections.ObservableList
 import javafx.stage.StageStyle
@@ -30,66 +29,72 @@ class SolutionController:Controller() {
         val SELECTED_SOLUTION="selectedSolution" //选中的 方案
         val LOADED_SOLUTION="loadedSolution"  // 标识已经加载的方案  运行时属性，不储存在配置文件中
         val SELECTED_CAMERA="selectedCamera"// 选中的相机
-        val FileName = "fileName"
-        val FilePath = "filePath"
+        val FileName = "fileName"  // json key
+        val FilePath = "filePath" //json key
     }
-    //新建方案是的 camera列表
+    var  currentTask:Task= Task()//当前任务
+    var  serviceStart=SimpleBooleanProperty(false)//标志是否开始任务
+    //新建方案的 camera列表
     val cameras = FXCollections.observableArrayList<Camera>()
     //选中的方案的相机列表 初始化的是这个列表
     var selectedSolutionCameras=FXCollections.observableArrayList<Camera>()
-    var selectedCamera:Camera? =null
-    val selectedSolution =SimpleBooleanProperty(false)
+    val selectedSolution =SimpleBooleanProperty(false) //选中的方案
+    val logc:LogController by  inject()
+//    override val configPath:Path=PathUtil.resolvePath(Paths.get(".conf"))
     init {
-        println("方案组件初始化")
+        logc.writeLogToFile("方案控制器初始化成功")
         //加载方案
         subscribe<loadSolution> {event->
             val solution=loadSolu(event.solutionName)
             selectedSolutionCameras=solution?.cameraList
             fire(solutionList(selectedSolutionCameras))
             setSelected()
+            fire(writeLogEvent(Level.INFO,"当前方案: ${solution!!.name}"))
         }
+        //初始化所有相机
         subscribe<InitCameras> { event ->
+            serviceStart.set(true)
             defaultCameraList().forEach { camera ->fire(InitCamera(camera))}
         }
+        //初始化相机
         subscribe<InitCamera> { event ->
+//            log.info("初始化相机 ${event.camera.name}}")
+            fire(writeLogEvent(Level.INFO,"初始化相机 ${event.camera.name}"))
             val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
-            svc.period = Duration.seconds(0.5)
+            svc.period = Duration.seconds(2.0)
             svc.start()
             svc.setOnSucceeded { successEvent->
-                println(successEvent.source.value)
+//                println(successEvent.source.value)
+                fire(writeLogEvent(Level.WARNING,"心跳@${event.camera.ip}：${successEvent.source.value}"))
             }
             svc.setOnFailed { fileEvent->
-                println(fileEvent.source.value?:"空")
+                fire(writeLogEvent(Level.WARNING,"${event.camera.name}@${event.camera.ip} ${fileEvent.source.value?:"连接超时"}"))
                 cameraOffline(event.camera)
-
+                if(serviceStart.value.not()){
+                    svc.cancel()
+                }
+            }
+            svc.setOnCancelled {
+//                println(event.camera.name+"计划任务成功取消")
+                fire(writeLogEvent(Level.INFO,"${event.camera.name}@${event.camera.ip} 计划任务成功取消"))
             }
             event.camera.lastwriteProperty().addListener { observable, oldValue, newValue ->
                 if(!(oldValue?:"0").equals("0")) {
-//                    var lastileResp = svc.api.get("/api/lastFile.lua")
-//                    if (lastileResp.ok()&&lastileResp.one().size>0) {
-//                        cameraOnline(lastileResp.one(), event.camera)
-//                        fire(enQueue(lastileResp.one(),event.camera))
-//                    }
-//                    thread(true,true,null,null){
+                    //获取最新写入的文件和文件所在目录
+                    thread(true,true,null,null){
                         LastFileService(svc.api.baseURI!!,event.camera,this@SolutionController).start()
-//                    }
+                    }
                 }
-                print(oldValue+"--------")
-                println(newValue)
-                println(event.camera)
             }
-            thread(true,true,null,event.camera.ip){
-                var downloadjpg= DownLoadService(event.camera,this@SolutionController)
-                downloadjpg.start()
+            //下载照片的线程
+           thread(true,true,null,event.camera.ip){
+               DownLoadService(event.camera,this@SolutionController).start()
             }
-
-
         }
+        // 入队
         subscribe<enQueue> {event->
                 enqueue(event.downloadAddress,event.camera)
         }
-
-
         //新建方案使用
         subscribe<saveCamera> {event->
             cameras.add(event.camera)
@@ -101,6 +106,7 @@ class SolutionController:Controller() {
                 set(SELECTED_CAMERA to event.selectedCamera)
             }
         }
+        //新建方案->删除已添加的相机
         subscribe<removeCamera> {event->
             var  selectedCamera=config.jsonModel<Camera>(SELECTED_CAMERA)
             if (selectedCamera != null) {
@@ -112,9 +118,7 @@ class SolutionController:Controller() {
                 cameras.remove(selectedCamera)
                 fire(putCameras(cameras))
             }
-
         }
-
     }
 
     /**
@@ -141,19 +145,35 @@ class SolutionController:Controller() {
      */
     fun enqueue(downloadAddress: JsonObject,camera: Camera){
         camera.queue.put(downloadAddress)
-        camera.photosize=camera.queue.size.toString()
+
+        camera.photosizeProperty().bindBidirectional(SimpleStringProperty(camera.queueProperty().value.size.toString()))
     }
-    fun  downloadJPG(lastfile: JsonObject,api: Rest) {
+    fun  downloadJPG(lastfile: JsonObject,api: Rest,camera: Camera) {
+        fire(writeLogEvent(Level.INFO,"${api.baseURI}/${lastfile.getString(FilePath)}"))
         var downFileResp = api.get(lastfile.getString(FilePath))
+        var savepath="${currentTask.savePathProperty().value}/${currentTask.taskNameProperty().value}"
+        var rename="${camera.ipProperty().value}_${lastfile.getString(FileName)}"
         try {
             if (downFileResp.ok()) {
                 var fileStream = downFileResp.content()
                 fileStream.use {
-                    Files.copy(it, PathUtil.resolvefile(Paths.get("img").resolve(lastfile.getString(FileName))), StandardCopyOption.REPLACE_EXISTING)
+                    var path=  PathUtil.resolvePath(Paths.get(savepath)).resolve(rename)
+                    Files.copy(it,PathUtil.resolvefile(path) , StandardCopyOption.REPLACE_EXISTING)
+                    camera.photosizeProperty().bindBidirectional(SimpleStringProperty(camera.queueProperty().value.size.toString()))
+                    fire(writeLogEvent(Level.INFO,"${camera.name}@${camera.ip} : ${lastfile.getString(FileName)} 重命名为: "+rename))
+                    fire(writeLogEvent(Level.INFO,"下载队列size: ${camera.queueProperty().value.size}"))
+                    if(camera.queueProperty().value.isEmpty()){
+//                        当下载队列为空的时候,再检查一下是否所有的照片都同步完了,防止因为失联导致丢片
+                        thread(true,true,null,null){
+//                            println("检查是否丢片")
+                            logc.writeLogToFile("${camera.name}@${camera.ip} 检查是否丢片")
+                            LastFileService(api.baseURI!!,camera,this@SolutionController).start()
+                        }
+                    }
                 }
             }
         } catch (e: Exception) {
-            println(e)
+            logc.writeLogToFile(e.message?:"")
         }
     }
     /**
@@ -161,8 +181,11 @@ class SolutionController:Controller() {
      */
     fun  cameraOffline(camera: Camera){
         camera.online=-1
-        camera.currimg=""
-        camera.currpath=""
+//        camera.currimg=""
+//        camera.currpath=""
+    }
+    fun cameraInit(camera: Camera){
+        camera.online=0
     }
 
     /**
@@ -175,7 +198,7 @@ class SolutionController:Controller() {
                 set(solution.name to solution)
                 save()
                 if(config.jsonModel<Solutions>(Solutions.ROOT)==null){
-                    set(Solutions.ROOT to Solutions(listOf(SolutionName(solution.name))))
+                    set(Solutions.ROOT to Solutions(FXCollections.observableArrayList(SolutionName(solution.name))))
                     save()
                 }else{
                    var solutions= config.jsonModel<Solutions>(Solutions.ROOT)
@@ -211,13 +234,28 @@ class SolutionController:Controller() {
      * 新建方案
      */
     fun  newSolution(){
-        find(NewSolutionWizard::class){
+        find<NewSolutionWizard>(mapOf(NewSolutionWizard::solutionController to this)){
             onComplete {
                 saveSolution(solution.item)
                 cameras.clear()
             }
             openModal(stageStyle = StageStyle.UTILITY)
+        }
+    }
 
+    /**
+     * 新建任务
+     */
+    fun  newTask(){
+        find(NewTaskWizard::class) {
+            onComplete {
+                taskModel.commit(taskModel.taskName,taskModel.savePath)
+                currentTask.savePath=taskModel.item.savePath
+                currentTask.taskName=taskModel.item.taskName
+//                print(taskModel.item)
+//                print(currentTask)
+            }
+            openModal(stageStyle = StageStyle.UTILITY)
         }
     }
     /**
@@ -226,12 +264,17 @@ class SolutionController:Controller() {
     fun  isSelected(solutionName:String):Boolean{
         return config.string(SELECTED_SOLUTION)==solutionName
     }
+
+    /**
+     *
+     */
     fun setSelected(){
         selectedSolution.set(true)
     }
 
     /**
      * 返回选中的方案名字
+     * 不存在返回空
      */
     fun selectedSolution():String=config.string(SELECTED_SOLUTION)?:""
     /**
@@ -242,12 +285,52 @@ class SolutionController:Controller() {
         return  config.string(LOADED_SOLUTION)==solutionName
     }
 
+    fun deleteSolution(solutionName: String){
+        with(config) {
+            if(solutionName.isNullOrEmpty().not()){
+            if (solutionName == selectedSolution()) {
+                config.remove(SELECTED_SOLUTION)
+                selectedSolution.set(false)
+            }
+            config.remove(solutionName)
+            var solutions = config.jsonModel<Solutions>(Solutions.ROOT)
+            solutions?.solutionNames?.removeIf { it.name == solutionName }
+            if(solutions?.solutionNames?.size==0){
+                remove(Solutions.ROOT)
+            }else {
+                set(Solutions.ROOT to solutions)
+            }
+            save()
+                fire(cleanlistview())
+        }
+        }
+    }
+
     /**
      * 返回方案个数
      * 如果为空  返回0
      */
-    fun solutionsSize():Int=config.jsonModel<Solutions>(Solutions.ROOT)?.solutionNames?.size?:0
+    fun solutionsSize():Int{
+        var solutions= config.jsonModel<Solutions>(Solutions.ROOT)
+        if (solutions != null) {
+          return  solutions.solutionNames.size
+        }else{
+            return 0
+        }
 
+
+//                ?.solutionNames?.size?:0
+        return 0
+    }
+
+    /**
+     * 检查是否有同名的
+     */
+    fun checkSolutionNameExists(solutionName: String):Boolean{
+        var solutions= config.jsonModel<Solutions>(Solutions.ROOT)
+            solutions?.solutionNames?.forEach { solutionname-> if(solutionname.name==solutionName){ return true}}
+            return false
+    }
 
 
     /**
@@ -266,26 +349,21 @@ class SolutionController:Controller() {
         }
     }
 
-    /**
+    /*
      * 确保 选中了  方案之后调用
      * 否则出异常
      */
     fun defaultCameraList():ObservableList<Camera> = selectedSolutionCameras
 
-    fun addlastWriteChangeListener(cameras: ObservableList<Camera>){
-
-    }
 
 
-    fun testLoadSolu(solutionName: String):Unit{
-        var s =config.jsonModel<Solution>(solutionName)
-        println(s)
-    }
-    fun testsolutions():Unit= println(config.jsonModel<Solutions>("solutions"))
+
+
 
 }
 
 class  loadSolution(val solutionName: String):FXEvent(EventBus.RunOn.BackgroundThread)//从config加载solution事件
+class  cleanlistview():FXEvent(EventBus.RunOn.ApplicationThread)//删除当前方案，清除listview 的 items
 class  solutionList(val cameras: ObservableList<Camera>):FXEvent(EventBus.RunOn.ApplicationThread)//将solution加载到 listView
 class  saveCamera(val  camera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)//保存Camera
 class  putCameras(val cameras: ObservableList<Camera>):FXEvent(EventBus.RunOn.ApplicationThread)//将Camer添加到list中

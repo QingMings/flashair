@@ -1,7 +1,12 @@
 package com.iezview.view
 
 import com.iezview.controller.*
+import javafx.beans.binding.Bindings
+import javafx.scene.control.Alert
+import javafx.scene.control.ButtonType
 import javafx.scene.control.ToggleGroup
+import javafx.scene.input.KeyCombination
+import javafx.stage.WindowEvent
 import tornadofx.*
 import java.util.logging.Level
 
@@ -18,7 +23,7 @@ class TopView : View("My View") {
         hbox {
             menubar {
                 menu("配置") {
-                    menuitem("新建方案") {
+                    menuitem("新建方案",KeyCombination.keyCombination("shortcut+N")) {
                         solutionController.newSolution()
                     }
                     menu("选择方案") {
@@ -29,9 +34,7 @@ class TopView : View("My View") {
                         showingProperty().addListener { observable, oldValue, newValue ->
                             if (newValue!!) {
                                 //方案列表大于0,隐藏 '(空)' 菜单
-                                if (solutionController.solutionsSize() > 0) {
-                                    emptyMenuItem.isVisible = false
-                                }
+                                emptyMenuItem.isVisible = solutionController.solutionsSize() <= 0
                                 //加载方案到菜单上,每次重新生成方案，移除除了 emptyMenuItem
                                 items.removeIf { menuitem -> menuitem != emptyMenuItem }
                                 solutionController.solutionsListMenu({
@@ -41,7 +44,6 @@ class TopView : View("My View") {
                                         if (solutionController.isSelected(text)) {
                                             isSelected = true
                                             solutionController.setSelected()
-                                            println("设置默认")
                                         }
                                         setOnAction {
                                             //保存选中的方案
@@ -55,16 +57,36 @@ class TopView : View("My View") {
                             }
                         }
                     }
-                    menuitem("Save") {
+//                    menuitem("Save") {
+//                    }
+
+                    separator()
+                    menuitem("退出", KeyCombination.keyCombination("shortcut+Q")){
+
+                        primaryStage.fireEvent(WindowEvent(primaryStage,WindowEvent.WINDOW_CLOSE_REQUEST))
                     }
-                    menuitem("Quit")
                 }
-                menu("Edit") {
-                    menuitem("Copy")
-                    menuitem("Paste")
+                menu("编辑") {
+
+                    menuitem("编辑当前方案", KeyCombination.keyCombination("shortcut+E")){
+
+                        find(EditSolutionView::class).openModal()
+                    }.enableWhen { Bindings.and(solutionController.selectedSolution,
+                            solutionController.serviceStart.not()) }
+                    menuitem("删除当前方案", KeyCombination.keyCombination("shortcut+D")){
+                        alert(Alert.AlertType.CONFIRMATION, "删除方案？","确定要删除当前方案么？", ButtonType.OK, ButtonType.CANCEL){
+                            if(ButtonType.OK == it){
+                                fire(writeLogEvent(Level.WARNING,"删除方案: ${solutionController.selectedSolution()}"))
+                                solutionController.deleteSolution(solutionController.selectedSolution())
+                            }
+                        }
+                    }.enableWhen {
+                        Bindings.and(solutionController.selectedSolution,
+                                solutionController.serviceStart.not()) }
+
                 }
                 menu("Help") {
-                    menuitem("清理日志") {
+                    menuitem("清理日志", KeyCombination.keyCombination("shortcut+shift+C")) {
                         fire(cleanLogEvent())
                     }
                 }
@@ -73,24 +95,33 @@ class TopView : View("My View") {
         }
         hbox {
             toolbar {
-                button("初始化方案") {
-                    enableWhen { solutionController.selectedSolution  }
+                button("新建任务") {
+                    enableWhen { Bindings.and(solutionController.selectedSolution,
+                            solutionController.serviceStart.not())}
+                    setOnAction {
+                        solutionController.newTask()
+                    }
+                }
+                button("开始任务") {
+                    enableWhen {
+                        Bindings.and(solutionController.selectedSolution ,
+                           solutionController.currentTask.taskNameProperty().isNotNull) }
                     setOnAction {
                         fire(InitCameras())
                     }
                 }
-                button("新建任务") {
+
+                button("结束任务"){
+                    enableWhen {
+                        solutionController.serviceStart
+                    }
                     setOnAction {
-                        fire(writeLogEvent(Level.WARNING,"测试错误日志"))
+                        solutionController.serviceStart.set(false)
                     }
                 }
-                button("改变状态"){
-                    setOnAction {
-                        fire(writeLogEvent(Level.INFO,"测试错误日志"))
-                    }
+                    prefWidthProperty().bind(primaryStage.widthProperty())
                 }
-                prefWidthProperty().bind(primaryStage.widthProperty())
             }
         }
     }
-}
+

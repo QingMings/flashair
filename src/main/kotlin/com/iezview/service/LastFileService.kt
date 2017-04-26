@@ -28,8 +28,7 @@ class LastFileService(basiURI:String, camera: Camera, solutionController: Soluti
 /**
  * 获取最新拍摄的一张照片 任务
  */
-open class  LastFileTask(api: Rest, camera: Camera, solutionController: SolutionController): Task<String>(){
-    val api=api
+open class  LastFileTask(val api: Rest, camera: Camera, solutionController: SolutionController): Task<String>(){
     val sc=solutionController
     val c=camera
     override fun call(): String {

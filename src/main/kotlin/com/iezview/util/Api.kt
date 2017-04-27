@@ -27,3 +27,14 @@ open class  JK{
         val FilePath="filePath"
     }
 }
+
+/**
+ * 程序运行时配置路径
+ */
+open class Config{
+    companion object{
+        val Conf="${System.getProperty("user.home")}/.flashAir"
+        val Img="${System.getProperty("user.home")}/img"
+        val log= Conf+"/log"
+    }
+}

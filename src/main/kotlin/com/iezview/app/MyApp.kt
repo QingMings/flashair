@@ -1,5 +1,6 @@
 package com.iezview.app
 
+import com.iezview.util.Config
 import com.iezview.view.MainView
 import javafx.scene.control.Alert
 import javafx.scene.control.ButtonType
@@ -14,10 +15,9 @@ import java.nio.file.Paths
  * app 程序入口
  */
 class MyApp : App(Image("icon/icon_512x512.png"), MainView::class, Styles::class) {
-    override val configBasePath: Path= Paths.get(".conf")
+    override val configBasePath: Path= Paths.get(Config.Conf)
 
     init {
-
         reloadStylesheetsOnFocus()
 
     }

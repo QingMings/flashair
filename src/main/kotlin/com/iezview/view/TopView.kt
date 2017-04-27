@@ -22,6 +22,7 @@ class TopView : View("My View") {
     override val root = vbox {
         hbox {
             menubar {
+                isUseSystemMenuBar=true
                 menu("配置") {
                     menuitem("新建方案",KeyCombination.keyCombination("shortcut+N")) {
                         solutionController.newSolution()
@@ -31,10 +32,19 @@ class TopView : View("My View") {
                         var emptyMenuItem = radiomenuitem("(空)")
                         emptyMenuItem.isDisable = true
                         var solutionsToggle = ToggleGroup()
+                          emptyMenuItem.toggleGroup=solutionsToggle
                         showingProperty().addListener { observable, oldValue, newValue ->
                             if (newValue!!) {
                                 //方案列表大于0,隐藏 '(空)' 菜单
+                                //为什么加这个判断：如果使用fx的菜单栏，然后如果清空了
+                                // ，就不会触发showProperty()的事件
+                                if(isUseSystemMenuBar.not()){
                                 emptyMenuItem.isVisible = solutionController.solutionsSize() <= 0
+                                }else{
+                                    //在用系统样式的菜单的时候，会引发数组越界异常
+                                    //全部清除反而好了，偶然发现，不过查看了源代码，也不算偶然吧，毕竟调试了一晚上
+                                    items.clear()
+                                }
                                 //加载方案到菜单上,每次重新生成方案，移除除了 emptyMenuItem
                                 items.removeIf { menuitem -> menuitem != emptyMenuItem }
                                 solutionController.solutionsListMenu({
@@ -53,7 +63,7 @@ class TopView : View("My View") {
                                             }
                                         }
                                     }
-                                })
+                                  })
                             }
                         }
                     }

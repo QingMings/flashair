@@ -1,6 +1,8 @@
 package com.iezview.view
 
 import com.iezview.model.TaskModel
+import com.iezview.util.Config
+import com.iezview.util.PathUtil
 import tornadofx.*
 import java.io.File
 import java.nio.file.Paths
@@ -51,7 +53,7 @@ class NewTaskView : View("新建任务") {
                     }
                     button("选择文件夹") {
                         setOnAction {
-                            var file = chooseDirectory("选择任务存储路径", File(Paths.get("img").toUri()), currentWindow)
+                            var file = chooseDirectory("选择任务存储路径", File(PathUtil.resolvePath(Paths.get(Config.Img)).toUri()), currentWindow)
                             if (file != null) {
                                 taskModel.savePath.value = file.absolutePath
                             }

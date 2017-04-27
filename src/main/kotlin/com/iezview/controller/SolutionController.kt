@@ -61,7 +61,7 @@ class SolutionController:Controller() {
 //            log.info("初始化相机 ${event.camera.name}}")
             fire(writeLogEvent(Level.INFO,"初始化相机 ${event.camera.name}"))
             val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
-            svc.period = Duration.seconds(2.0)
+            svc.period = Duration.seconds(1.5)
             svc.start()
             svc.setOnSucceeded { successEvent->
 //                println(successEvent.source.value)
@@ -159,6 +159,7 @@ class SolutionController:Controller() {
                 fileStream.use {
                     var path=  PathUtil.resolvePath(Paths.get(savepath)).resolve(rename)
                     Files.copy(it,PathUtil.resolvefile(path) , StandardCopyOption.REPLACE_EXISTING)
+                    camera.queue.count()
                     camera.photosizeProperty().bindBidirectional(SimpleStringProperty(camera.queueProperty().value.size.toString()))
                     fire(writeLogEvent(Level.INFO,"${camera.name}@${camera.ip} : ${lastfile.getString(FileName)} 重命名为: "+rename))
                     fire(writeLogEvent(Level.INFO,"下载队列size: ${camera.queueProperty().value.size}"))

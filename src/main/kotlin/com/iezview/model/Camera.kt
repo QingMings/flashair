@@ -2,7 +2,7 @@ package com.iezview.model
 
 import tornadofx.*
 import java.util.*
-import java.util.concurrent.ArrayBlockingQueue
+import java.util.concurrent.LinkedBlockingDeque
 import javax.json.JsonObject
 
 /**
@@ -24,7 +24,7 @@ class Camera():JsonModel{
     fun currpathProperty()=getProperty(Camera::currpath)
     var lastwrite by property<String>()
     fun  lastwriteProperty()=getProperty(Camera::lastwrite)
-    var queue  by property(ArrayBlockingQueue<JsonObject>(150))//提供一个容量为150的阻塞队列
+    var queue  by property(LinkedBlockingDeque<JsonObject>(1))//提供一个容量为150的阻塞队列
     fun queueProperty()=getProperty(Camera::queue)
     var photosize by property("0")
     fun photosizeProperty()=getProperty(Camera::photosize)

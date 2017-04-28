@@ -1,6 +1,7 @@
 package com.iezview.controller
 
 import com.iezview.util.ArrowFactory
+import com.iezview.util.Config
 import com.iezview.util.LoggerFormat
 import com.iezview.util.PathUtil
 import com.iezview.view.consoleViewStyle
@@ -29,7 +30,7 @@ class  LogController:Controller(){
     }
     val consoleView: CodeArea=CodeArea()//日志输出视图
     //配置 log输出位置
-    val  logPath= Paths.get("log")!!
+    val  logPath= Paths.get(Config.log)!!
     val  logfilePath= logPath.resolve(LocalDate.now().toString()+".log")!!
     init {
         importStylesheet(consoleViewStyle::class)

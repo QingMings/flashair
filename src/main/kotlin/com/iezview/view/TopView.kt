@@ -101,6 +101,7 @@ class TopView : View("My View") {
                     }
                 }
                 prefWidthProperty().bind(primaryStage.widthProperty())
+                menus.forEach { menu-> menu.disableWhen { solutionController.Applicaiton_Modal } }
             }
         }
         hbox {

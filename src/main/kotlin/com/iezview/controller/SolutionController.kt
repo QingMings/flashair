@@ -32,6 +32,7 @@ class SolutionController:Controller() {
         val FileName = "fileName"  // json key
         val FilePath = "filePath" //json key
     }
+    var  Applicaiton_Modal =SimpleBooleanProperty(false)
     var  currentTask:Task= Task()//当前任务
     var  serviceStart=SimpleBooleanProperty(false)//标志是否开始任务
     //新建方案的 camera列表
@@ -244,9 +245,11 @@ class SolutionController:Controller() {
             onComplete {
                 saveSolution(solution.item)
                 cameras.clear()
-            }
-            openModal(stageStyle = StageStyle.UTILITY)
 
+            }
+
+            openModal(stageStyle = StageStyle.UTILITY)
+            Applicaiton_Modal.bind(isDockedProperty)
         }
     }
 
@@ -263,6 +266,7 @@ class SolutionController:Controller() {
 //                print(currentTask)
             }
             openModal(stageStyle = StageStyle.UTILITY)
+            Applicaiton_Modal.bind(isDockedProperty)
         }
     }
     /**

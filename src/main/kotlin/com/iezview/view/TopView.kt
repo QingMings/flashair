@@ -114,8 +114,8 @@ class TopView : View("My View") {
                 }
                 button("开始任务") {
                     enableWhen {
-                        Bindings.and(solutionController.selectedSolution ,
-                           solutionController.currentTask.taskNameProperty().isNotNull) }
+                        Bindings.and(Bindings.and(solutionController.selectedSolution ,
+                           solutionController.currentTask.taskNameProperty().isNotNull) ,solutionController.serviceStart.not())}
                     setOnAction {
                         fire(InitCameras())
                     }

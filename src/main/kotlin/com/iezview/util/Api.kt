@@ -1,5 +1,7 @@
 package com.iezview.util
 
+import tornadofx.*
+
 /**
  * Created by shishifanbuxie on 2017/4/25.
  */
@@ -36,5 +38,15 @@ open class Config{
         val Conf="${System.getProperty("user.home")}/.flashAir"
         val Img="${System.getProperty("user.home")}/img"
         val log= Conf+"/log"
+        // 配置Wizard 中文
+        fun chineseWizard(wizard: Wizard){
+            wizard.stepsTextProperty.set("步骤")
+            wizard.backButtonTextProperty.set("上一步")
+            wizard.nextButtonTextProperty.set("下一步")
+            wizard.finishButtonTextProperty.set("完成")
+            wizard.cancelButtonTextProperty.set("取消")
+        }
     }
+
 }
+

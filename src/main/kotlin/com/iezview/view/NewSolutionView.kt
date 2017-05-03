@@ -4,6 +4,7 @@ import com.iezview.controller.*
 import com.iezview.model.Camera
 import com.iezview.model.CameraModel
 import com.iezview.model.SolutionModel
+import com.iezview.util.Config
 import javafx.collections.ObservableList
 import javafx.geometry.Pos
 import javafx.scene.control.TextFormatter
@@ -22,10 +23,7 @@ class NewSolutionWizard : Wizard("新建方案", "添加一个新的工作方案
     init {
         enterProgresses=true//响应回车事件
         stepsTextProperty.set("步骤")
-        backButtonTextProperty.set("上一步")
-        nextButtonTextProperty.set("下一步")
-        finishButtonTextProperty.set("完成")
-        cancelButtonTextProperty.set("取消")
+        Config.chineseWizard(this)
         graphic = resources.imageview("graphics/icon_16x16@2x.png")
         add(SolutionNameView::class,mapOf(SolutionNameView::solutionController to solutionController))
         add(SolutionCameraListView::class,mapOf(SolutionNameView::solutionController to solutionController))

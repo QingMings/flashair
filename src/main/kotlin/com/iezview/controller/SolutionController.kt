@@ -60,12 +60,13 @@ class SolutionController:Controller() {
         subscribe<InitCamera> { event ->
 //            log.info("初始化相机 ${event.camera.name}}")
             fire(writeLogEvent(Level.INFO,"初始化相机 ${event.camera.name}"))
+
             val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
             svc.period = Duration.seconds(1.5)
             svc.start()
             svc.setOnSucceeded { successEvent->
 //                println(successEvent.source.value)
-                fire(writeLogEvent(Level.WARNING,"心跳@${event.camera.ip}：${successEvent.source.value}"))
+//                fire(writeLogEvent(Level.WARNING,"心跳@${event.camera.ip}：${successEvent.source.value}"))
             }
             svc.setOnFailed { fileEvent->
                 fire(writeLogEvent(Level.WARNING,"${event.camera.name}@${event.camera.ip} ${fileEvent.source.value?:"连接超时"}"))
@@ -145,11 +146,13 @@ class SolutionController:Controller() {
      */
     fun enqueue(downloadAddress: JsonObject,camera: Camera){
         camera.queue.put(downloadAddress)
+        println("入队成功"+camera.queue.size)
 
         camera.photosizeProperty().bindBidirectional(SimpleStringProperty(camera.queueProperty().value.size.toString()))
     }
     fun  downloadJPG(lastfile: JsonObject,api: Rest,camera: Camera) {
         fire(writeLogEvent(Level.INFO,"${api.baseURI}/${lastfile.getString(FilePath)}"))
+            camera.downloadStartProperty().value=true//开始下载
         var downFileResp = api.get(lastfile.getString(FilePath))
         var savepath="${currentTask.savePathProperty().value}/${currentTask.taskNameProperty().value}"
         var rename="${camera.ipProperty().value}_${lastfile.getString(FileName)}"
@@ -163,6 +166,7 @@ class SolutionController:Controller() {
                     camera.photosizeProperty().bindBidirectional(SimpleStringProperty(camera.queueProperty().value.size.toString()))
                     fire(writeLogEvent(Level.INFO,"${camera.name}@${camera.ip} : ${lastfile.getString(FileName)} 重命名为: "+rename))
                     fire(writeLogEvent(Level.INFO,"下载队列size: ${camera.queueProperty().value.size}"))
+
                     if(camera.queueProperty().value.isEmpty()){
 //                        当下载队列为空的时候,再检查一下是否所有的照片都同步完了,防止因为失联导致丢片
                         thread(true,true,null,null){
@@ -171,6 +175,7 @@ class SolutionController:Controller() {
                             LastFileService(api.baseURI!!,camera,this@SolutionController).start()
                         }
                     }
+                    camera.downloadStartProperty().value=false
                 }
             }
         } catch (e: Exception) {
@@ -241,6 +246,7 @@ class SolutionController:Controller() {
                 cameras.clear()
             }
             openModal(stageStyle = StageStyle.UTILITY)
+
         }
     }
 
@@ -248,7 +254,7 @@ class SolutionController:Controller() {
      * 新建任务
      */
     fun  newTask(){
-        find(NewTaskWizard::class) {
+        find<NewTaskWizard>(mapOf(NewTaskWizard::solutionController to this)) {
             onComplete {
                 taskModel.commit(taskModel.taskName,taskModel.savePath)
                 currentTask.savePath=taskModel.item.savePath
@@ -370,6 +376,6 @@ class  saveCamera(val  camera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)/
 class  putCameras(val cameras: ObservableList<Camera>):FXEvent(EventBus.RunOn.ApplicationThread)//将Camer添加到list中
 class  selectedCamera(val selectedCamera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)//选中的 list item
 class  removeCamera():FXEvent(EventBus.RunOn.ApplicationThread)// 从list items中移除 item
-class  InitCameras() : FXEvent(EventBus.RunOn.BackgroundThread)//初始化相机列表
+class  InitCameras() : FXEvent(EventBus.RunOn.ApplicationThread)//初始化相机列表
 class  InitCamera(val camera: Camera) : FXEvent(EventBus.RunOn.ApplicationThread)//初始化相机
 class  enQueue(val downloadAddress:JsonObject,val camera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)//入队

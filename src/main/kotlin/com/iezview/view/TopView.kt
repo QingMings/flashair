@@ -106,10 +106,12 @@ class TopView : View("My View") {
         hbox {
             toolbar {
                 button("新建任务") {
+                    shortcut("shortcut+T")
                     enableWhen { Bindings.and(solutionController.selectedSolution,
                             solutionController.serviceStart.not())}
                     setOnAction {
                         solutionController.newTask()
+                        primaryStage.scene.accelerators.mapValues { it.key }
                     }
                 }
                 button("开始任务") {

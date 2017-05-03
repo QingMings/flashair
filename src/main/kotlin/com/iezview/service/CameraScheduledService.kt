@@ -1,11 +1,13 @@
 package com.iezview.service
 
 import com.iezview.controller.SolutionController
+import com.iezview.controller.writeLogEvent
 import com.iezview.model.Camera
 import com.iezview.util.API
 import javafx.concurrent.ScheduledService
 import javafx.concurrent.Task
 import tornadofx.*
+import java.util.logging.Level
 
 /**
  * Created by shishifanbuxie on 2017/4/21.
@@ -34,6 +36,9 @@ open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干�
             sc.cameraInit(c)
            return ""
          }
+        if(c.downloadStartProperty().value){
+            return ""
+        }
         api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=1000}
         api.baseURI="${API.Base}${c.ipProperty().value}"
         val resp=api.get("${API.LastWrite}${System.currentTimeMillis()}")
@@ -44,6 +49,9 @@ open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干�
                     sc.writeErrorlog("${c.ip}  连接异常")
                     sc.cameraOffline(c)
                 }
+        if (c.lastwrite != null) {
+            sc.fire(writeLogEvent(Level.WARNING,"心跳@${c.ip}：${c.lastwrite?:""}"))
+        }
         return c.lastwrite?:""
     }
 }

@@ -24,11 +24,13 @@ class Camera():JsonModel{
     fun currpathProperty()=getProperty(Camera::currpath)
     var lastwrite by property<String>()
     fun  lastwriteProperty()=getProperty(Camera::lastwrite)
-    var queue  by property(LinkedBlockingDeque<JsonObject>(1))//提供一个容量为150的阻塞队列
+    var queue  by property(LinkedBlockingDeque<JsonObject>(150))//提供一个容量为150的阻塞队列
     fun queueProperty()=getProperty(Camera::queue)
     var photosize by property("0")
     fun photosizeProperty()=getProperty(Camera::photosize)
     var filemap by property<HashMap<String,String>>()
+    var downloadStart by property(false)
+    fun downloadStartProperty() =getProperty(Camera::downloadStart)
 
     override fun updateModel(json: JsonObject) {
         super.updateModel(json)

@@ -2,10 +2,12 @@ package com.iezview.view
 
 import com.iezview.controller.LogController
 import com.iezview.controller.SolutionController
+import com.iezview.util.PathUtil
 import javafx.scene.paint.Color
 import tornadofx.*
 import java.awt.Desktop
 import java.io.File
+import java.nio.file.Paths
 
 /**
  * Created by shishifanbuxie on 2017/4/11.
@@ -26,9 +28,11 @@ class ConsoleView : View("运行日志") {
                  label("存储路径") {
             }
             hyperlink {
+
                 textProperty().bindBidirectional(solutionController.currentTask.savePathProperty())
                 visibleWhen { textProperty().isNotEmpty }
                 action {
+                    PathUtil.resolvePath(Paths.get(textProperty().value))
                     Desktop.getDesktop().open(File(textProperty().value))
                 }
             }

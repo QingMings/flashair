@@ -32,7 +32,7 @@ class SolutionController:Controller() {
         val FileName = "fileName"  // json key
         val FilePath = "filePath" //json key
     }
-    var  Applicaiton_Modal =SimpleBooleanProperty(false)
+    var  Applicaiton_Modal =SimpleBooleanProperty(false)// 标识是否打开了dialog
     var  currentTask:Task= Task()//当前任务
     var  serviceStart=SimpleBooleanProperty(false)//标志是否开始任务
     //新建方案的 camera列表

@@ -11,9 +11,9 @@ import tornadofx.*
  open class API{
     companion object{
         val Base="http://"
-        val LastFile="/api/lastFile.lua" //getlastFile
+        val LastFile="/IEZView/api/lastFile.lua" //getlastFile
         val FileList="/command.cgi?op=100&DIR="//  getfileList from special dir
-        val LastWrite="/command.cgi?op=121&TIME=" // get start times when new file writing
+        val LastWrite="/command.cgi?op=121&TIME=" //     get start times when new file writing
     }
 }
 

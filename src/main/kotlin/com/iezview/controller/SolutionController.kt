@@ -14,6 +14,7 @@ import javafx.collections.ObservableList
 import javafx.stage.StageStyle
 import javafx.util.Duration
 import tornadofx.*
+import java.io.File
 import java.nio.file.Files
 import java.nio.file.Paths
 import java.nio.file.StandardCopyOption
@@ -63,7 +64,7 @@ class SolutionController:Controller() {
             fire(writeLogEvent(Level.INFO,"初始化相机 ${event.camera.name}"))
 
             val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
-            svc.period = Duration.seconds(1.5)
+            svc.period = Duration.seconds(1.0)
             svc.start()
             svc.setOnSucceeded { successEvent->
 //                println(successEvent.source.value)
@@ -235,7 +236,15 @@ class SolutionController:Controller() {
             save()
         }
     }
+    fun  checkTask(){
+         var  taskPath="${currentTask.savePathProperty().value}/${currentTask.taskNameProperty().value}"
+        if (taskPath != null) {
+            if(File(taskPath).isDirectory){
+                File(taskPath).walk(FileWalkDirection.TOP_DOWN).filter { file->file.name.endsWith(".JPG",true) }.forEach { file:File-> println(file.name) }
+            }
 
+        }
+    }
 
     /**
      * 新建方案
@@ -245,9 +254,7 @@ class SolutionController:Controller() {
             onComplete {
                 saveSolution(solution.item)
                 cameras.clear()
-
             }
-
             openModal(stageStyle = StageStyle.UTILITY)
             Applicaiton_Modal.bind(isDockedProperty)
         }
@@ -328,9 +335,6 @@ class SolutionController:Controller() {
         }else{
             return 0
         }
-
-
-//                ?.solutionNames?.size?:0
         return 0
     }
 

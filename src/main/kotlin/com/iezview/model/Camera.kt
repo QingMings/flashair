@@ -28,7 +28,7 @@ class Camera():JsonModel{
     fun queueProperty()=getProperty(Camera::queue)
     var photosize by property("0")
     fun photosizeProperty()=getProperty(Camera::photosize)
-    var filemap by property<HashMap<String,String>>()
+    var filemap by property<LinkedHashMap<String,String>>()
     var downloadStart by property(false)
     fun downloadStartProperty() =getProperty(Camera::downloadStart)
 

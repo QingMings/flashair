@@ -41,7 +41,7 @@ class NewTaskView : View("新建任务") {
             fieldset(title) {
                 field("任务名称") {
                     textfield(taskModel.taskName) {
-                        text="${solutionController.selectedSolution()}${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd HH:mm"))}"
+                        text="${solutionController.selectedSolution()}${LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd HH/mm"))}"
                         prefColumnCount = 10
                         required()
                     }

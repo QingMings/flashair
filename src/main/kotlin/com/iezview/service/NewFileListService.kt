@@ -10,6 +10,7 @@ import javafx.concurrent.Task
 import tornadofx.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.util.*
 import javax.json.Json
 import javax.json.JsonObject
 
@@ -25,7 +26,7 @@ class NewFileListService(filedir: String, basiURI: String, camera: Camera, solut
     val dir = filedir
     override fun createTask(): Task<kotlin.String> {
         api.baseURI = uri
-        api.engine.requestInterceptor = { (it as HttpURLRequest).connection.readTimeout = 3000 }
+        api.engine.requestInterceptor = { (it as HttpURLRequest).connection.readTimeout = 5000 }
         return object : NewFileListTask(dir, api, c, sc) {}
     }
 
@@ -43,7 +44,7 @@ open class NewFileListTask(dir: String, api: Rest, camera: Camera, solutionContr
     override fun call(): String {
         var lastfileResp = api.get("${API.FileList}$dir")
         if (lastfileResp.ok()) {
-            var map = HashMap<String, String>()
+            var map = LinkedHashMap<String, String>()
             var lastfileStream = lastfileResp.content()
             BufferedReader(InputStreamReader(lastfileStream)).useLines { lines ->
                 lines.forEach {
@@ -56,7 +57,6 @@ open class NewFileListTask(dir: String, api: Rest, camera: Camera, solutionContr
             if (c.filemap == null) {
                 c.filemap = map
                 var file = createFile(c.filemap.keys.last(), c.filemap.values.last())
-//                println("first: ${file.getString(JK.FileName)}")
                 sc.fire(enQueue(file, c))
             } else {
                 map.forEach { key, value ->

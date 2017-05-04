@@ -132,6 +132,14 @@ class TopView : View("My View") {
                         solutionController.serviceStart.set(false)
                     }
                 }
+
+                button("检查"){
+//                    enableWhen {  }
+
+                    setOnAction {
+                        solutionController.checkTask()
+                    }
+                }
                     prefWidthProperty().bind(primaryStage.widthProperty())
                 }
             }

@@ -31,6 +31,7 @@ open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干�
     val  c=camera//方案控制器
     val sc=solutionController //当前相机
     override fun call(): kotlin.String {
+        println("scheduled")
         if(sc.serviceStart.value.not()){cancel()}
         if(isCancelled){
             sc.cameraInit(c)
@@ -39,12 +40,18 @@ open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干�
         if(c.downloadStartProperty().value){
             return ""
         }
-        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=1000}
+        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=200}
         api.baseURI="${API.Base}${c.ipProperty().value}"
         val resp=api.get("${API.LastWrite}${System.currentTimeMillis()}")
                 if(resp.ok()){
-                    c.online=1
-                    c.lastwrite=resp.text()
+                    if(resp.text()!!.length<30){
+                        c.online=1
+                        c.lastwrite=resp.text()
+                    }else{
+                        sc.writeErrorlog("${c.ip}  连接异常")
+                        sc.cameraOffline(c)
+                    }
+
                 }else{
                     sc.writeErrorlog("${c.ip}  连接异常")
                     sc.cameraOffline(c)

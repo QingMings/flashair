@@ -8,9 +8,9 @@ import tornadofx.*
  */
 
 class Task():ViewModel(){
-     var savePath by property<String>()
+     var savePath by property<String>("")
     fun savePathProperty() =getProperty(Task::savePath)
-    var taskName by property<String>()
+    var taskName by property<String>("")
     fun taskNameProperty() = getProperty(Task::taskName)
 
     override fun toString(): String {

@@ -56,6 +56,7 @@ class  LogController:Controller(){
         }
         consoleView.setParagraphGraphicFactory(graphicF)
         consoleView.isEditable=false//禁止编辑
+
         return consoleView
     }
     /**
@@ -84,13 +85,18 @@ class  LogController:Controller(){
      * 打印日志
      */
     private  fun  log(message: String,color:String){
+        println(consoleView.paragraphs.size)
+         if(consoleView.paragraphs.size>10){
+             consoleView.clear()
+         }
         var range = consoleView.selection
-        var start =range.start;
+        var start =range.start
         consoleView.appendText(message+"\n")
         range = consoleView.selection
         consoleView.setStyleClass(start,range.end,color)
         consoleView.moveTo(consoleView.paragraphs.size-1,0)
         consoleView.requestFollowCaret()
+
         consoleView.isAutoScrollOnDragDesired=true
     }
     /**

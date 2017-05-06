@@ -11,8 +11,6 @@ import tornadofx.*
 import java.io.BufferedReader
 import java.io.InputStreamReader
 import java.util.*
-import javax.json.Json
-import javax.json.JsonObject
 
 /**
  * Created by shishifanbuxie on 2017/4/24.
@@ -56,13 +54,13 @@ open class NewFileListTask(dir: String, api: Rest, camera: Camera, solutionContr
             }
             if (c.filemap == null) {
                 c.filemap = map
-                var file = createFile(c.filemap.keys.last(), c.filemap.values.last())
+                var file = JK.createFile(c.filemap.keys.last(), c.filemap.values.last())
                 sc.fire(enQueue(file, c))
             } else {
                 map.forEach { key, value ->
                     if (c.filemap.containsKey(key).not()) {
 //                        println(key)
-                        var file = createFile(key, value)
+                        var file = JK.createFile(key, value)
                         sc.fire(enQueue(file, c))
                         c.filemap.put(key, value)
                     }
@@ -72,8 +70,4 @@ open class NewFileListTask(dir: String, api: Rest, camera: Camera, solutionContr
         return ""
     }
 
-    /**
-     * buildJsonObject
-     */
-    private fun createFile(key: String, value: String): JsonObject = Json.createObjectBuilder().add(JK.FileName, key).add(JK.FilePath, "$value/$key").build()
-}
+    }

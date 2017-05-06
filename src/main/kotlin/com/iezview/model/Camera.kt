@@ -9,7 +9,7 @@ import javax.json.JsonObject
  * Created by shishifanbuxie on 2017/4/11.
  * 相机 model
  */
-class Camera():JsonModel{
+class Camera:JsonModel{
     var id  =UUID.randomUUID()
 //    fun idProperty() = getProperty(Camera::id)
     var name by property<String>()
@@ -33,7 +33,6 @@ class Camera():JsonModel{
     fun downloadStartProperty() =getProperty(Camera::downloadStart)
 
     override fun updateModel(json: JsonObject) {
-        super.updateModel(json)
         with(json){
             id=uuid("id")
             name=string("name")

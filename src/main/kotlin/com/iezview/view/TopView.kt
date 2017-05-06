@@ -1,6 +1,7 @@
 package com.iezview.view
 
 import com.iezview.controller.*
+import com.iezview.util.Config
 import javafx.beans.binding.Bindings
 import javafx.scene.control.Alert
 import javafx.scene.control.ButtonType
@@ -22,7 +23,7 @@ class TopView : View("My View") {
     override val root = vbox {
         hbox {
             menubar {
-                isUseSystemMenuBar=true
+                if(Config.isMac())isUseSystemMenuBar=true
                 menu("配置") {
                     menuitem("新建方案",KeyCombination.keyCombination("shortcut+N")) {
                         solutionController.newSolution()
@@ -118,7 +119,7 @@ class TopView : View("My View") {
                 button("开始任务") {
                     enableWhen {
                         Bindings.and(Bindings.and(solutionController.selectedSolution ,
-                           solutionController.currentTask.taskNameProperty().isNotNull) ,solutionController.serviceStart.not())}
+                           solutionController.currentTask.taskNameProperty().isNotEqualTo("")) ,solutionController.serviceStart.not())}
                     setOnAction {
                         fire(InitCameras())
                     }

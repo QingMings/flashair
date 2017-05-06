@@ -4,9 +4,14 @@ import com.iezview.model.*
 import com.iezview.service.CameraScheduledService
 import com.iezview.service.DownLoadService
 import com.iezview.service.LastFileService
+import com.iezview.util.API
+import com.iezview.util.Config
 import com.iezview.util.PathUtil
+import com.iezview.view.CheckPhotoView
+import com.iezview.view.MainView
 import com.iezview.view.NewSolutionWizard
 import com.iezview.view.NewTaskWizard
+import javafx.application.Platform
 import javafx.beans.property.SimpleBooleanProperty
 import javafx.beans.property.SimpleStringProperty
 import javafx.collections.FXCollections
@@ -41,7 +46,8 @@ class SolutionController:Controller() {
     //选中的方案的相机列表 初始化的是这个列表
     var selectedSolutionCameras=FXCollections.observableArrayList<Camera>()
     val selectedSolution =SimpleBooleanProperty(false) //选中的方案
-    val logc:LogController by  inject()
+    val logc:LogController by  inject()//日志 controller
+
 //    override val configPath:Path=PathUtil.resolvePath(Paths.get(".conf"))
     init {
         logc.writeLogToFile("方案控制器初始化成功")
@@ -51,6 +57,12 @@ class SolutionController:Controller() {
             selectedSolutionCameras=solution?.cameraList
             fire(solutionList(selectedSolutionCameras))
             setSelected()
+            Platform.runLater {
+                find(MainView::class){
+                    //                title="${Config.AppicationName}-[${solution!!.name}]"
+                    titleProperty.bindBidirectional(SimpleStringProperty("${Config.AppicationName}-[${solution!!.name}]"))
+                }
+            }
             fire(writeLogEvent(Level.INFO,"当前方案: ${solution!!.name}"))
         }
         //初始化所有相机
@@ -64,10 +76,10 @@ class SolutionController:Controller() {
             fire(writeLogEvent(Level.INFO,"初始化相机 ${event.camera.name}"))
 
             val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
-            svc.period = Duration.seconds(1.0)
+            svc.period = Duration.seconds(0.2)
             svc.start()
             svc.setOnSucceeded { successEvent->
-//                println(successEvent.source.value)
+                println(successEvent.source.value)
 //                fire(writeLogEvent(Level.WARNING,"心跳@${event.camera.ip}：${successEvent.source.value}"))
             }
             svc.setOnFailed { fileEvent->
@@ -83,6 +95,8 @@ class SolutionController:Controller() {
             }
             event.camera.lastwriteProperty().addListener { observable, oldValue, newValue ->
                 if(!(oldValue?:"0").equals("0")) {
+                    println("${event.camera.ip} lastvalueChange")
+//                if(newValue!="0") {
                     //获取最新写入的文件和文件所在目录
                     thread(true,true,null,null){
                         LastFileService(svc.api.baseURI!!,event.camera,this@SolutionController).start()
@@ -120,6 +134,17 @@ class SolutionController:Controller() {
                 }
                 cameras.remove(selectedCamera)
                 fire(putCameras(cameras))
+            }
+        }
+        subscribe<redownloadPhotos> {event->
+            thread(true,true,null,"reDownloadJPG"){
+                var api  =Rest()
+                api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=10000}
+                event.cameras.forEach {
+                    api.baseURI="${API.Base}${it.ipProperty().value}"
+
+                    reDownloadJPG(api,it)
+                }
             }
         }
     }
@@ -182,7 +207,32 @@ class SolutionController:Controller() {
             }
         } catch (e: Exception) {
             logc.writeLogToFile(e.message?:"")
+
         }
+    }
+
+    /**
+     * 重新下载
+     */
+    fun  reDownloadJPG(api:Rest, camera: Camera){
+        fire(writeLogEvent(Level.INFO,"重新下载 ${api.baseURI}/${camera.currpathProperty().value}"))
+        var savepath="${currentTask.savePathProperty().value}/${currentTask.taskNameProperty().value}"
+        var rename="${camera.ipProperty().value}_${camera.currimgProperty().value}"
+          var redownResp=api.get(camera.currpathProperty().value)
+        try {
+            if(redownResp.ok()){
+                var fileStream = redownResp.content()
+                fileStream.use {
+                    var path=  PathUtil.resolvePath(Paths.get(savepath)).resolve(rename)
+                    Files.copy(it,PathUtil.resolvefile(path) , StandardCopyOption.REPLACE_EXISTING)
+                    fire(writeLogEvent(Level.INFO,"重新下载[成功] ${api.baseURI}/${camera.currpathProperty().value}"))
+                }
+            }
+        }catch (e:Exception){
+            fire(writeLogEvent(Level.WARNING,"重新下载[失败] ${api.baseURI}/${camera.currpathProperty().value}"))
+        }
+
+
     }
     /**
      * 相机离线
@@ -237,10 +287,31 @@ class SolutionController:Controller() {
         }
     }
     fun  checkTask(){
+        var  cameraPhotoIpSet=HashSet<String>()
+        var checkCameraM=CheckCamerasModel()
          var  taskPath="${currentTask.savePathProperty().value}/${currentTask.taskNameProperty().value}"
         if (taskPath != null) {
             if(File(taskPath).isDirectory){
-                File(taskPath).walk(FileWalkDirection.TOP_DOWN).filter { file->file.name.endsWith(".JPG",true) }.forEach { file:File-> println(file.name) }
+                File(taskPath).walk(FileWalkDirection.TOP_DOWN).filter { file->file.name.endsWith(".JPG",true) }.forEach { file:File->
+                       var camearIP=  file.name.split("_").get(0)
+                    cameraPhotoIpSet.add(camearIP)
+                }
+
+                defaultCameraList().forEach { camera->
+                    /**
+                     * Todo 添加 not()
+                     */
+                     if(cameraPhotoIpSet.contains(camera.ip).not()){
+                         checkCameraM.cameras.value.add(camera)
+                         checkCameraM.commit(checkCameraM.cameras)
+                     }
+                }
+
+                 find<CheckPhotoView>(mapOf(CheckPhotoView::checkCameras to checkCameraM)){
+                     openModal(stageStyle = StageStyle.UTILITY)
+
+                     Applicaiton_Modal.bind(isDockedProperty)
+                 }
             }
 
         }
@@ -387,3 +458,4 @@ class  removeCamera():FXEvent(EventBus.RunOn.ApplicationThread)// 从list items�
 class  InitCameras() : FXEvent(EventBus.RunOn.ApplicationThread)//初始化相机列表
 class  InitCamera(val camera: Camera) : FXEvent(EventBus.RunOn.ApplicationThread)//初始化相机
 class  enQueue(val downloadAddress:JsonObject,val camera: Camera):FXEvent(EventBus.RunOn.BackgroundThread)//入队
+class  redownloadPhotos(val cameras: ObservableList<Camera>):FXEvent(EventBus.RunOn.ApplicationThread)

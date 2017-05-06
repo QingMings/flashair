@@ -23,19 +23,29 @@ class ConsoleView : View("运行日志") {
                 prefWidthProperty().bind(primaryStage.widthProperty())
              }
 
-            hbox {
+            borderpane {
                 addClass(consoleViewStyle.bar)
-                 label("存储路径") {
-            }
-            hyperlink {
+                left= hbox{
+                        label("存储路径") {
+                            addClass(consoleViewStyle.savepath)
+                    }
+                    hyperlink {
 
-                textProperty().bindBidirectional(solutionController.currentTask.savePathProperty())
-                visibleWhen { textProperty().isNotEmpty }
-                action {
-                    PathUtil.resolvePath(Paths.get(textProperty().value))
-                    Desktop.getDesktop().open(File(textProperty().value))
+                        textProperty().bindBidirectional(solutionController.currentTask.savePathProperty())
+                        visibleWhen { textProperty().isNotEmpty }
+                        action {
+                            PathUtil.resolvePath(Paths.get(textProperty().value))
+                            Desktop.getDesktop().open(File(textProperty().value))
+                        }
+                    }
                 }
-            }
+               right= hbox{
+                   addClass(consoleViewStyle.checkState)
+                    label("检查：")
+                   label{
+                       text=""
+                   }
+               }
             prefWidthProperty().bind(primaryStage.widthProperty())
         }
     }
@@ -49,6 +59,8 @@ class consoleViewStyle : Stylesheet() {
         val red by cssclass()
         val orange by cssclass()
         val codeArea by cssclass()
+        val checkState by cssclass()
+        val savepath by cssclass()
     }
 
     init {
@@ -66,15 +78,24 @@ class consoleViewStyle : Stylesheet() {
         }
         console{
             bar{
-                label{
+
+                savepath{
                     padding = box(2.px, 10.px, 2.px, 10.px)
                     fontSize = 10.px
                 }
+                hyperlink{
+                    fontSize = 10.px
+                    borderColor += box(Color.TRANSPARENT)
+                }
+                checkState{
+                    label{
+                        fontSize = 10.px
+                        padding = box(2.px, 5.px, 2.px, 2.px)
+                    }
+                }
             }
-            hyperlink{
-                fontSize = 10.px
-                borderColor += box(Color.TRANSPARENT)
-            }
+
+
         }
     }
 

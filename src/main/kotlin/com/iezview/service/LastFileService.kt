@@ -19,7 +19,7 @@ class LastFileService(basiURI:String, camera: Camera, solutionController: Soluti
     val c=camera
     override fun createTask(): Task<String> {
         api.baseURI=uri
-        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=3000}
+        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=5000}
         return object : LastFileTask(api,c,sc){}
     }
 

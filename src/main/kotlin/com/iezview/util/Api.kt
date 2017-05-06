@@ -1,6 +1,8 @@
 package com.iezview.util
 
 import tornadofx.*
+import javax.json.Json
+import javax.json.JsonObject
 
 /**
  * Created by shishifanbuxie on 2017/4/25.
@@ -27,6 +29,11 @@ open class  JK{
         val DirPath="dirPath"
         val FileName="fileName"
         val FilePath="filePath"
+        /**
+         * buildJsonObject
+         */
+         fun createFile(key: String, value: String): JsonObject = Json.createObjectBuilder().add(JK.FileName, key).add(JK.FilePath, "$value/$key").build()
+
     }
 }
 
@@ -38,6 +45,7 @@ open class Config{
         val Conf="${System.getProperty("user.home")}/.flashAir"
         val Img="${System.getProperty("user.home")}/img"
         val log= Conf+"/log"
+        val AppicationName="Hello Flash Air"
         // 配置Wizard 中文
         fun chineseWizard(wizard: Wizard){
             wizard.stepsTextProperty.set("步骤")
@@ -46,6 +54,7 @@ open class Config{
             wizard.finishButtonTextProperty.set("完成")
             wizard.cancelButtonTextProperty.set("取消")
         }
+        fun  isMac():Boolean=System.getProperty("os.name").contains("mac",true)
     }
 
 }

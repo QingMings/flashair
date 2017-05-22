@@ -1,4 +1,8 @@
+sudo: false
 language: java
+cache:
+  directories:
+   - $HOME/.m2
 jdk:
 - oraclejdk8
 addons:
@@ -12,6 +16,7 @@ install: true
 script:
 - mvn test
 deploy:
+  skip_cleanup: true
   provider: releases
   api_key:
     secure: sEav0jDTjiW4yNDPcu5K7H1ruXUXqBYe3w5EGwMf9Fp6Yp8rk1lyjwJQgKKkub5XplizsCQL4bXx4i/Kvaoei8ankC2M1AD+Cxe/tArp/4OmMfE1Wn05Ba3+b9P9xzlHmu1NQZlFjanz2o1nEnTng96C2/i6dBdGh1pn8yi8EoB58hmsf34sNebVwNClTkBmogO1rD7naAPxxBROKC2mLO1f0GV7PRicDBXezw+WDNOSUVOHQd40lFwwuYYLd9vg6RM7ccyN5ZtNVI2BMxzRB2D52ojBT7wefNRozxMm5DbUG7fx1XvjpwRx0mPXl/By3w08jjZV72IQW8+gvRAfzcDNTtVUlwvmM4KzBVTJZ+LO+Rhu1FeCUyzW13DJajjDvkfcpXdiw1j6ZTCk5Cvd0VHsaJy4US5z6wJJ74slGvgotqO4lk1R74MFWAKeiT1BLuoYL05t9uUDOQX7DnW6h3I5GuDnakr+df3q6wNhz5BxqKt2D6robPdb5HHbsPo88iZsdLPmtq/o3Oqbtbl2jD0bySm9bJLn/f2yls8tB5ACqlQj4emEThnMtY62WTjInXH8bV+XTEBiohnyjVp6txSYb8dKKeUd+3CkFs84AuTkLDatHaluZGxuVc1g7QRlcv2bj7u5EqGXQ5uiETU/GgXfGly90DtEdaDJjaOOuQM=

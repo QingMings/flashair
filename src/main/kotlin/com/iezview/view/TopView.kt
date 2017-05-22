@@ -141,6 +141,12 @@ class TopView : View("My View") {
                         solutionController.checkTask()
                     }
                 }
+//                var i = 30
+//                button("test"){
+//                    setOnAction {
+//                        fire(writeReplaceEvent(Level.INFO,"${i+3}"))
+//                    }
+//                }
                     prefWidthProperty().bind(primaryStage.widthProperty())
                 }
             }

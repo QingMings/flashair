@@ -15,7 +15,11 @@ class CameraListView : View("My View") {
     }
     override val root = listview<Camera> {
         cellCache {CameraItemFragment(it).root}
-        subscribe<solutionList> { event ->items.setAll(event.cameras)}
+        subscribe<solutionList> { event ->
+            items.setAll(event.cameras)
+//            scrollTo(items.size-1)
+
+        }
         subscribe<cleanlistview> {items.clear()  }
     }
 }

@@ -24,16 +24,22 @@ class CameraItemFragment(it: Camera) :  Fragment("CameraItem") {
                 centerY = 100.0
                 radius = 5.0
                 //渐变
-                    it.onlineProperty().onChange { online->
-                        if (online==CameraState.onLine) {
-                            fillProperty().bindBidirectional(Gradient.ON_LINE.toProperty())
-                        } else if(online==CameraState.errorConn) {
-                            fillProperty().bindBidirectional(Gradient.ERROR_CONN.toProperty())
+                    it.onlineProperty().addListener { observable, oldValue, newValue ->
+                        if(it.ip=="192.168.3.115"){
+                            println("在线：？"+it.online)
+                        }
+                        if (newValue>=CameraState.onLine) {
+
+                            fillProperty().value=Gradient.ON_LINE
+                        } else if(newValue<=CameraState.errorConn) {
+//                            println(it.ip+"离线"+newValue)
+                            fillProperty().value=Gradient.ERROR_CONN
                         }else{
-                            fillProperty().bindBidirectional(Gradient.OFF_LINE.toProperty())
+                            fillProperty().value=Gradient.OFF_LINE
                         }
                     }
-                fillProperty().bindBidirectional(Gradient.OFF_LINE.toProperty())
+
+               fillProperty().value=Gradient.OFF_LINE
                 effect=DropShadow(3.0,Color.color(0.4,0.4,0.4))
             }
             style{

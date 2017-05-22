@@ -16,7 +16,7 @@ class Camera:JsonModel{
     fun nameProperty() =getProperty(Camera::name)
     var ip by property<String>()
     fun ipProperty() =getProperty(Camera::ip)
-    var online by property<Int>()
+    var online: Int by property(0)
     fun onlineProperty()=getProperty(Camera::online)
     var currimg by property<String>()
     fun currimgProperty()=getProperty(Camera::currimg)
@@ -37,7 +37,7 @@ class Camera:JsonModel{
             id=uuid("id")
             name=string("name")
             ip=string("ip")
-            online=int("online")
+            online=int("online")?:0
             currimg=string("currimg")
             currpath=string("currpath")
             lastwrite=string("lastwrite")

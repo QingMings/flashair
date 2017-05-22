@@ -41,6 +41,7 @@ class SolutionController:Controller() {
     var  Applicaiton_Modal =SimpleBooleanProperty(false)// 标识是否打开了dialog
     var  currentTask:Task= Task()//当前任务
     var  serviceStart=SimpleBooleanProperty(false)//标志是否开始任务
+    var  cameraScheduledServices=HashMap<String,CameraScheduledService>()
     //新建方案的 camera列表
     val cameras = FXCollections.observableArrayList<Camera>()
     //选中的方案的相机列表 初始化的是这个列表
@@ -63,6 +64,7 @@ class SolutionController:Controller() {
                     titleProperty.bindBidirectional(SimpleStringProperty("${Config.AppicationName}-[${solution!!.name}]"))
                 }
             }
+            cleanCameraScheduledServices()
             fire(writeLogEvent(Level.INFO,"当前方案: ${solution!!.name}"))
         }
         //初始化所有相机
@@ -74,38 +76,48 @@ class SolutionController:Controller() {
         subscribe<InitCamera> { event ->
 //            log.info("初始化相机 ${event.camera.name}}")
             fire(writeLogEvent(Level.INFO,"初始化相机 ${event.camera.name}"))
+            if(cameraScheduledServices.containsKey(event.camera.ip).not()){
+                val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
+                cameraScheduledServices.put(event.camera.ip,svc)
+                svc.period = Duration.seconds(4.0)
+                svc.start()
 
-            val svc = object : CameraScheduledService(event.camera,this@SolutionController){}
-            svc.period = Duration.seconds(0.2)
-            svc.start()
-            svc.setOnSucceeded { successEvent->
-                println(successEvent.source.value)
-//                fire(writeLogEvent(Level.WARNING,"心跳@${event.camera.ip}：${successEvent.source.value}"))
-            }
-            svc.setOnFailed { fileEvent->
-                fire(writeLogEvent(Level.WARNING,"${event.camera.name}@${event.camera.ip} ${fileEvent.source.value?:"连接超时"}"))
-                cameraOffline(event.camera)
-                if(serviceStart.value.not()){
-                    svc.cancel()
+                svc.setOnSucceeded { successEvent->
+    //                println(successEvent.source.value)
+    //                fire(writeLogEvent(Level.WARNING,"心跳@${event.camera.ip}：${successEvent.source.value}"))
                 }
-            }
-            svc.setOnCancelled {
-//                println(event.camera.name+"计划任务成功取消")
-                fire(writeLogEvent(Level.INFO,"${event.camera.name}@${event.camera.ip} 计划任务成功取消"))
-            }
-            event.camera.lastwriteProperty().addListener { observable, oldValue, newValue ->
-                if(!(oldValue?:"0").equals("0")) {
-                    println("${event.camera.ip} lastvalueChange")
-//                if(newValue!="0") {
-                    //获取最新写入的文件和文件所在目录
-                    thread(true,true,null,null){
-                        LastFileService(svc.api.baseURI!!,event.camera,this@SolutionController).start()
+
+                svc.setOnFailed { fileEvent->
+                    fire(writeLogEvent(Level.WARNING,"${event.camera.name}@${event.camera.ip} ${fileEvent.source.value?:"连接超时"}"))
+                    cameraOffline(event.camera)
+                    if(serviceStart.value.not()){
+                        svc.cancel()
                     }
                 }
-            }
-            //下载照片的线程
-           thread(true,true,null,event.camera.ip){
-               DownLoadService(event.camera,this@SolutionController).start()
+
+                svc.setOnCancelled {
+    //                println(event.camera.name+"计划任务成功取消")
+                    fire(writeLogEvent(Level.INFO,"${event.camera.name}@${event.camera.ip} 计划任务成功取消"))
+                }
+                event.camera.lastwriteProperty().addListener { observable, oldValue, newValue ->
+//                    if(!(oldValue?:"0").equals("0")) {
+                        println("${event.camera.ip} lastvalueChange")
+                    if(newValue!="0") {
+                        //获取最新写入的文件和文件所在目录
+                        thread(true,true,null,null){
+                            LastFileService(svc.api.baseURI!!,event.camera,this@SolutionController).start()
+                        }
+                    }
+                }
+                //下载照片的线程
+               thread(true,true,null,event.camera.ip){
+                   DownLoadService(event.camera,this@SolutionController).start()
+                }
+            }else{
+              var   svc = cameraScheduledServices[event.camera.ip]
+
+                    svc!!.restart()
+                println("重启 计划任务"+svc.toString())
             }
         }
         // 入队
@@ -237,11 +249,14 @@ class SolutionController:Controller() {
     /**
      * 相机离线
      */
-    fun  cameraOffline(camera: Camera){
-        camera.online=-1
+    fun  cameraOffline(camera: Camera) = if(camera.online <=-1) camera.online=camera.online.minus(1) else camera.online=-1
 //        camera.currimg=""
 //        camera.currpath=""
-    }
+
+    /**
+     * 相机上线
+     */
+    fun cameraOnLine(camera: Camera) = if(camera.online >=1) camera.online=camera.online.plus(1) else camera.online=1
     fun cameraInit(camera: Camera){
         camera.online=0
     }
@@ -425,6 +440,11 @@ class SolutionController:Controller() {
     fun loadSolu(solutionName: String): Solution? =config.jsonModel<Solution>(solutionName)
 
     /**
+     * 清空 cameraScheduledServices
+     * 在切换方案时候调用
+     */
+    fun cleanCameraScheduledServices()=cameraScheduledServices.clear()
+    /**
      * 加载默认的方案
      * 如果没有 不做操作
      */
@@ -441,6 +461,14 @@ class SolutionController:Controller() {
      */
     fun defaultCameraList():ObservableList<Camera> = selectedSolutionCameras
 
+    fun  cameraScheduledServiceRestart(camera: Camera){
+        var svc =   cameraScheduledServices[camera.ip]
+        if(svc!=null){
+            svc.restart()
+            fire(writeLogEvent(Level.INFO,"重启计划任务@${camera.ip}"))
+
+        }
+    }
 
 
 

@@ -42,6 +42,7 @@ class  LogController:Controller(){
         log.addHandler(fileHandler)
         subscribe<writeLogEvent>{event-> writeOutLog(event.loglevel,event.message)}
         subscribe<cleanLogEvent>{cleanlog()}
+        subscribe<writeReplaceEvent> { event-> writeProgress(event.logLevel,event.message) }
     }
     /**
      * RichText 控件,用来显示日志输出
@@ -74,7 +75,18 @@ class  LogController:Controller(){
             log.warning(message)
         }
     }
-
+    fun writeProgress(logLevel: Level,message: String){
+        if(logLevel==Level.INFO){
+            replace(message, GREEN)
+            log.info(message)
+        }else if(logLevel== Level.WARNING){
+            replace(message, ORANGE)
+            log.warning(message)
+        }else{
+            replace(message, RED)
+            log.warning(message)
+        }
+    }
     /**
      * 写日志到文件
      */
@@ -85,7 +97,6 @@ class  LogController:Controller(){
      * 打印日志
      */
     private  fun  log(message: String,color:String){
-        println(consoleView.paragraphs.size)
          if(consoleView.paragraphs.size>10){
              consoleView.clear()
          }
@@ -99,6 +110,24 @@ class  LogController:Controller(){
 
         consoleView.isAutoScrollOnDragDesired=true
     }
+    private  fun replace(message: String ,color: String){
+        if(consoleView.paragraphs.size>10){
+            consoleView.clear()
+        }
+        consoleView.moveTo(consoleView.paragraphs.size-1,0)
+        var range = consoleView.selection
+        var start =range.start
+
+//        consoleView.appendText(message+"\n")
+//        consoleView.replaceText(range,message+"\n")
+        consoleView.replaceText(start,range.end,"sdfasdf")
+        range = consoleView.selection
+        consoleView.setStyleClass(start,range.end,color)
+
+        consoleView.requestFollowCaret()
+
+        consoleView.isAutoScrollOnDragDesired=true
+    }
     /**
      * 清理日志
      */
@@ -107,3 +136,4 @@ class  LogController:Controller(){
 
 class writeLogEvent(val loglevel: Level,val message: String) :FXEvent(EventBus.RunOn.ApplicationThread)//写日志事件
 class cleanLogEvent :FXEvent(EventBus.RunOn.ApplicationThread)//清除日志事件
+class writeReplaceEvent(val logLevel: Level,val message: String):FXEvent(EventBus.RunOn.ApplicationThread)//进度君

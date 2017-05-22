@@ -8,6 +8,7 @@ import javafx.concurrent.ScheduledService
 import javafx.concurrent.Task
 import tornadofx.*
 import java.util.logging.Level
+import kotlin.concurrent.thread
 
 /**
  * Created by shishifanbuxie on 2017/4/21.
@@ -19,6 +20,7 @@ open class CameraScheduledService(camera: Camera, solutionController: SolutionCo
     var solu=solutionController //方案控制器
     var c=camera //当前相机
     override fun createTask(): Task<String> {
+//        println("创建计划任务"+c.ip)
         return  object : MyTask<String>(api,c,solu){}
     }
 }
@@ -27,11 +29,11 @@ open class CameraScheduledService(camera: Camera, solutionController: SolutionCo
  *  任务
  */
 open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干扰
-        val api: Rest, camera: Camera, solutionController: SolutionController): Task<kotlin.String>(){
+         api: Rest, camera: Camera, solutionController: SolutionController): Task<kotlin.String>(){
+    val api =api
     val  c=camera//方案控制器
     val sc=solutionController //当前相机
     override fun call(): kotlin.String {
-        println("scheduled")
         if(sc.serviceStart.value.not()){cancel()}
         if(isCancelled){
             sc.cameraInit(c)
@@ -40,25 +42,43 @@ open class  MyTask<String>(// 网络访问 每个相机一个实例，互不干�
         if(c.downloadStartProperty().value){
             return ""
         }
-        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=200}
-        api.baseURI="${API.Base}${c.ipProperty().value}"
-        val resp=api.get("${API.LastWrite}${System.currentTimeMillis()}")
-                if(resp.ok()){
-                    if(resp.text()!!.length<30){
-                        c.online=1
-                        c.lastwrite=resp.text()
-                    }else{
+        thread(true,true,null,c.ip) {
+//            println(Thread.currentThread().name)
+
+            try {
+                Rest.useApacheHttpClient()
+            api.engine.requestInterceptor = {
+                (it as HttpURLRequest).connection.readTimeout = 1500
+                (it as HttpURLRequest).connection.connectTimeout=1500
+            }
+            api.baseURI = "${API.Base}${c.ipProperty().value}"
+            val resp = api.get("${API.LastWrite}${System.currentTimeMillis()}")
+            if (resp.ok()) {
+                if (resp.text()!!.length < 30) {
+                    //如果最后写入事件和上次值相同，则没有拍摄新照片 ，就不发送 更新UI事件了
+                                sc.cameraOnLine(c)
+                            c.lastwrite =resp.text()
+                } else {
                         sc.writeErrorlog("${c.ip}  连接异常")
                         sc.cameraOffline(c)
-                    }
+                }
 
-                }else{
+            } else {
                     sc.writeErrorlog("${c.ip}  连接异常")
                     sc.cameraOffline(c)
-                }
-        if (c.lastwrite != null) {
-            sc.fire(writeLogEvent(Level.WARNING,"心跳@${c.ip}：${c.lastwrite?:""}"))
+
+            }
+            if (c.lastwrite != null) {
+                    sc.fire(writeLogEvent(Level.WARNING, "心跳@${c.ip}：${c.lastwrite ?: ""}"))
+
+            }
+        }catch (e:Exception){
+                println(c.ip +e.message)
+//                    sc.writeErrorlog("${c.ip}  连接异常")
+                    sc.cameraOffline(c)
+            }
         }
+
         return c.lastwrite?:""
     }
 }

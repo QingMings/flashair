@@ -1,11 +1,13 @@
 package com.iezview.service
 
 import com.iezview.controller.SolutionController
+import com.iezview.controller.writeLogEvent
 import com.iezview.model.Camera
 import com.iezview.util.API
 import javafx.concurrent.Service
 import javafx.concurrent.Task
 import tornadofx.*
+import java.util.logging.Level
 
 /**
  * Created by shishifanbuxie on 2017/4/23.
@@ -30,13 +32,20 @@ open class DownLoadTask<String>(camera: Camera, api: Rest, solutionController: S
     var api=api// 网络访问 每个相机一个实例，互不干扰
     val  c=camera//方案控制器
     val sc=solutionController //当前相机
+
     override fun call(): kotlin.String {
-        api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=10000}
-        api.baseURI="${API.Base}${c.ipProperty().value}"
-        while (true){
-        val filepath=queue.take()
-        sc.downloadJPG(filepath,api,c)
+        try {
+            api.engine.requestInterceptor={(it as HttpURLRequest).connection.readTimeout=50000}
+            api.baseURI="${API.Base}${c.ipProperty().value}"
+            while (true){
+                val filepath=queue.take()
+                sc.downloadJPG(filepath,api,c)
+            }
+        }catch (e:Exception){
+            sc.fire(writeLogEvent(Level.SEVERE,"${c.ip}@下载失败"))
+            Thread.interrupted()
         }
+
         return ""
     }
 

@@ -12,7 +12,7 @@ import tornadofx.*
  * app 程序入口
  */
 class MyApp : App(Image("icon/icon_512x512.png"), MainView::class, Styles::class) {
-//    override val configBasePath: Path= Paths.get(Config.Conf)
+//    override val configBasePath: Path = Paths.get(Config.Conf)
 
     init {
         reloadStylesheetsOnFocus()
@@ -25,6 +25,7 @@ class MyApp : App(Image("icon/icon_512x512.png"), MainView::class, Styles::class
                         if(!(ButtonType.OK.equals(it))){event.consume()}
             }
         }
+
 //        stage.addEventFilter(KeyEvent.KEY_PRESSED,({event->
 //            println(event.code)
 //        }))
